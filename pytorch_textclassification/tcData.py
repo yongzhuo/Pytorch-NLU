@@ -57,9 +57,18 @@ class Corpus(ABC):
             fo.close()
             # 覆盖0.95的长度
             len_maxs.sort()
+            len_max_100 = len_maxs[-1]
             len_max_95 = len_maxs[int(len(len_maxs) * 0.95)]
-            if len_max_95 < self.config.max_len:
+            len_max_90 = len_maxs[int(len(len_maxs) * 0.90)]
+            len_max_50 = len_maxs[int(len(len_maxs) * 0.50)]
+            self.logger.info("len_max_100: {}".format(len_max_100))
+            self.logger.info("len_max_95: {}".format(len_max_95))
+            self.logger.info("len_max_90: {}".format(len_max_90))
+            self.logger.info("len_max_50: {}".format(len_max_50))
+            if not self.config.max_len or self.config.max_len == -1:
                 self.len_max = len_max_95
+            elif self.config.max_len == 0:  # 即ax_len为0则是强制获取语料中的最大文本长度
+                self.len_max = max(len_maxs) + 2
             return xs, ys
 
     def read_texts_from_json(self, texts, keys=["text", "label"]):

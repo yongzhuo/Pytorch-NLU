@@ -60,7 +60,7 @@ model_config = {
 
     "grad_accum_steps": 1,  # 梯度积累多少步
     "max_grad_norm": 1.0,  # 最大标准化梯度
-    "weight_decay": 0.999,  # lr衰减
+    "weight_decay": 0.99,  # lr衰减
     "dropout_rate": 0.1,  # 随即失活概率
     "adam_eps": 1e-8,  # adam优化器超参
     "seed": 2021,  # 随机种子
@@ -68,7 +68,7 @@ model_config = {
     "stop_epochs": 4,  # 早停轮次
     "evaluate_steps": 320,  # 评估步数
     "save_steps": 320,  # 存储步数
-    "warmup_steps": 0,  # 预热步数
+    "warmup_steps": -1,  # 预热步数
     "ignore_index": 0,  # 忽略的index
     "max_steps": -1,  # 最大步数, -1表示取满epochs
     "is_train": True,  # 是否训练, 另外一个人不是(而是预测)

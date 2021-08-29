@@ -41,6 +41,8 @@ if __name__ == "__main__":
     model_config["path_train"] = path_train  # 训练模语料, 必须
     model_config["path_dev"] = path_dev      # 验证语料, 可为None
     model_config["path_tet"] = None          # 测试语料, 可为None
+    # multi-class:  可选 None(BCE), BCE, BCE_LOGITS, MSE, FOCAL_LOSS, DICE_LOSS, LABEL_SMOOTH, MIX;
+    # multi-label:  SOFT_MARGIN_LOSS, PRIOR_MARGIN_LOSS, FOCAL_LOSS, CIRCLE_LOSS, DICE_LOSS, MIX等
     os.environ["CUDA_VISIBLE_DEVICES"] = str(model_config["CUDA_VISIBLE_DEVICES"])
 
     # 预训练模型适配的class

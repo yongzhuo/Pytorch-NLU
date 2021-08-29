@@ -1,6 +1,6 @@
 
-# ***pytorch_textclassification***
->>> pytorch_textclassification是一个以pytorch和transformers为基础，专注于文本分类的自然语言处理工具。
+# [***pytorch-textclassification***](https://github.com/yongzhuo/Pytorch-NLU/pytorch_textclassification)
+>>> pytorch-textclassification是一个以pytorch和transformers为基础，专注于文本分类的轻量级自然语言处理工具。
 
 
 ## 目录
@@ -10,6 +10,10 @@
 * [参考](#参考)
 
 
+## 项目地址
+   - pytorch-textclassification: [https://github.com/yongzhuo/Pytorch-NLU/pytorch_textclassification](https://github.com/yongzhuo/Pytorch-NLU/pytorch_textclassification)
+  
+  
 # 数据
 ## 数据来源
 所有数据集均来源于网络，只做整理供大家提取方便，如果有侵权等问题，请及时联系删除。
@@ -23,6 +27,7 @@
   * [THUCNEWS](http://thuctc.thunlp.org/), 清华大学自然语言处理实验室整理的语料, 新浪新闻RSS订阅频道2005-2011年间的历史数据筛选, 多类分类语料, 74w新闻文档, 14个类别;
   * [IFLYTEK](https://storage.googleapis.com/cluebenchmark/tasks/iflytek_public.zip), 科大讯飞开源的长文本分类语料, APP应用描述的标注数据，包含和日常生活相关的各类应用主题, 链接为CLUE, 共17333样例, 119个类别;
   * [TNEWS](https://storage.googleapis.com/cluebenchmark/tasks/tnews_public.zip), 今日头条提供的中文新闻标题分类语料, 数据集来自今日头条的新闻版块, 链接为CLUE, 共73360样例, 15个类别;
+
 
 ## 数据格式
 ```
@@ -406,3 +411,6 @@ weighted_avg     0.7610    0.7639    0.7581       466
    macro_avg     0.5867    0.6607    0.6156       466
 weighted_avg     0.7352    0.8155    0.7715       466
 ```
+
+希望对你有所帮助!
+

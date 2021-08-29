@@ -91,7 +91,7 @@ class TCGraph(BertPreTrainedModel):
             elif self.loss_type.upper() == "BCE_LOGITS":       # 二元交叉熵平滑连续计算型pytorch版
                 loss = self.loss_bcelog(logits, labels)
             elif self.loss_type.upper() == "BCE":              # 二元交叉熵的pytorch版
-                logits_softmax = self.sigmoid(logits)
+                logits_softmax = self.softmax(logits)
                 loss = self.loss_bce(logits_softmax.view(-1), labels.view(-1))
             elif self.loss_type.upper() == "MSE":              # 均方误差
                 loss = self.loss_mse(logits.view(-1), labels.view(-1))
@@ -100,7 +100,7 @@ class TCGraph(BertPreTrainedModel):
                 loss_pmlsm = self.loss_pmlsm(logits, labels)
                 loss = (loss_pmlsm + loss_focal) / 2
             else:                                              # 二元交叉熵
-                logits_softmax = self.sigmoid(logits)
+                logits_softmax = self.softmax(logits)
                 loss = self.loss_bce(logits_softmax.view(-1), labels.view(-1))
         return loss, logits
 

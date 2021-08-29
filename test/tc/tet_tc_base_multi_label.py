@@ -44,7 +44,7 @@ if __name__ == "__main__":
     # 损失函数类型,
     # multi-class:  可选 None(BCE), BCE, BCE_LOGITS, MSE, FOCAL_LOSS, DICE_LOSS, LABEL_SMOOTH
     # multi-label:  SOFT_MARGIN_LOSS, PRIOR_MARGIN_LOSS, FOCAL_LOSS, CIRCLE_LOSS, DICE_LOSS等
-    model_config["path_tet"] = "FOCAL_LOSS"
+    model_config["loss_type"] = "SOFT_MARGIN_LOSS"
     os.environ["CUDA_VISIBLE_DEVICES"] = str(model_config["CUDA_VISIBLE_DEVICES"])
 
     # 预训练模型适配的class

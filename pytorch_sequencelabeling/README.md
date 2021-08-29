@@ -1,6 +1,6 @@
 
-# ***pytorch_sequencelabeling***
->>> pytorch_sequencelabeling是一个支持softmax、crf、span等模型，只依赖pytorch、transformers、tensorboardX和numpy，专注于序列标注的自然语言处理工具包。
+# [***pytorch-sequencelabeling***](https://github.com/yongzhuo/Pytorch-NLU/pytorch_sequencelabeling)
+>>> pytorch-sequencelabeling是一个支持softmax、crf、span等模型，只依赖pytorch、transformers、tensorboardX和numpy，专注于序列标注的轻量级自然语言处理工具包。
 
 
 ## 目录
@@ -11,6 +11,10 @@
 * [Reference](#Reference)
 
 
+## 项目地址
+   - pytorch-sequencelabeling: [https://github.com/yongzhuo/Pytorch-NLU/pytorch_sequencelabeling](https://github.com/yongzhuo/Pytorch-NLU/pytorch_sequencelabeling)
+  
+  
 # 数据
 ## 数据来源
 免责声明：以下数据集由公开渠道收集而成, 只做说明; 科学研究、商用请联系原作者; 如有侵权, 请及时联系删除。

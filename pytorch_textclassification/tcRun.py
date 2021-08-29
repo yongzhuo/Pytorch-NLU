@@ -123,14 +123,20 @@ if __name__ == "__main__":
         save_steps = 320  # 存储步数
         ee = 0
     # 训练-验证语料地址, 可以只输入训练地址
-    path_corpus = path_root + "/corpus/text_classification/school"
+    # path_corpus = path_root + "/corpus/text_classification/school"
+    path_corpus = path_root + "/corpus/text_classification/org_tnews"
+
     path_train = os.path.join(path_corpus, "train.json")
     path_dev = os.path.join(path_corpus, "dev.json")
     model_config["evaluate_steps"] = evaluate_steps  # 评估步数
     model_config["save_steps"] = save_steps  # 存储步数
     model_config["path_train"] = path_train
     model_config["path_dev"] = path_dev
-    model_config["path_tet"] = path_dev
+    # 损失函数类型,
+    # multi-class:  可选 None(BCE), BCE, BCE_LOGITS, MSE, FOCAL_LOSS, DICE_LOSS, LABEL_SMOOTH
+    # multi-label:  SOFT_MARGIN_LOSS, PRIOR_MARGIN_LOSS, FOCAL_LOSS, CIRCLE_LOSS, DICE_LOSS等
+    # model_config["loss_type"] = "SOFT_MARGIN_LOSS"
+    os.environ["CUDA_VISIBLE_DEVICES"] = str(model_config["CUDA_VISIBLE_DEVICES"])
 
     # 预训练模型适配的class
     model_type = ["BERT", "ERNIE", "BERT_WWM", "ALBERT", "ROBERTA", "XLNET", "ELECTRA"]
@@ -139,8 +145,8 @@ if __name__ == "__main__":
         "ROBERTA": pretrained_model_dir + "/chinese_roberta_wwm_ext_pytorch",
         "ALBERT": pretrained_model_dir + "/albert_base_v1",
         "XLNET": pretrained_model_dir + "/chinese_xlnet_mid_pytorch",
-        # "ERNIE": pretrained_model_dir + "/ERNIE_stable-1.0.1-pytorch",
-        "ERNIE": pretrained_model_dir + "/ernie-tiny",
+        "ERNIE": pretrained_model_dir + "/ERNIE_stable-1.0.1-pytorch",
+        # "ERNIE": pretrained_model_dir + "/ernie-tiny",
         "BERT": pretrained_model_dir + "/bert-base-chinese",
     }
     idx = 0  # 选择的预训练模型类型---model_type
@@ -158,7 +164,7 @@ if __name__ == "__main__":
 
 
 # shell
-# nohup python  tcRun.py > tc_multi.log 2>&1 &
-# tail -n 1000  -f tc_multi.log
+# nohup python  tcRun.py > tc_class.log 2>&1 &
+# tail -n 1000  -f tc_class.log
 # |myz|
 
