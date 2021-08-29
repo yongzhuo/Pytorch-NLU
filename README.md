@@ -1,12 +1,11 @@
-
-#[Pytorch-NLU](https://github.com/yongzhuo/Pytorch-NLU) 
+# [Pytorch-NLU](https://github.com/yongzhuo/Pytorch-NLU) 
 [![PyPI](https://img.shields.io/pypi/v/Pytorch-NLU)](https://pypi.org/project/Pytorch-NLU/)
 [![Build Status](https://travis-ci.com/yongzhuo/Pytorch-NLU.svg?branch=master)](https://travis-ci.com/yongzhuo/Pytorch-NLU)
 [![PyPI_downloads](https://img.shields.io/pypi/dm/Pytorch-NLU)](https://pypi.org/project/Pytorch-NLU/)
 [![Stars](https://img.shields.io/github/stars/yongzhuo/Pytorch-NLU?style=social)](https://github.com/yongzhuo/Pytorch-NLU/stargazers)
 [![Forks](https://img.shields.io/github/forks/yongzhuo/Pytorch-NLU.svg?style=social)](https://github.com/yongzhuo/Pytorch-NLU/network/members)
 [![Join the chat at https://gitter.im/yongzhuo/Pytorch-NLU](https://badges.gitter.im/yongzhuo/Pytorch-NLU.svg)](https://gitter.im/yongzhuo/Pytorch-NLU?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
->>> Pytorch-NLP是一个只依赖pytorch、transformers、numpy、tensorboardX，专注于文本分类、序列标注的极简自然语言处理工具包。
+>>> Pytorch-NLU是一个只依赖pytorch、transformers、numpy、tensorboardX，专注于文本分类、序列标注的极简自然语言处理工具包。
 支持BERT、ERNIE、ROBERTA、NEZHA、ALBERT、XLNET、ELECTRA、GPT-2、TinyBERT、XLM、T5等预训练模型;
 支持BCE-Loss、Focal-Loss、Circle-Loss、Prior-Loss、Dice-Loss、LabelSmoothing等损失函数;
 具有依赖轻量、代码简洁、注释详细、调试清晰、配置灵活、拓展方便、适配NLP等特性。
