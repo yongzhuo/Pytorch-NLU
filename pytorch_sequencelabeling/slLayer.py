@@ -21,7 +21,8 @@ __all__ = ["PriorMultiLabelSoftMarginLoss",
            "SpanFCLayer",
            "FCLayer",
            "Mish",
-           "CRF"
+           "CRF",
+           "GridPointer",
            ]
 
 
@@ -379,14 +380,14 @@ class Swish(nn.Module):
 
 
 class Mish(nn.Module):
-    def __index__(self):
+    def __init__(self):
         """ Mish函数可以看做是介于线性函数与ReLU函数之间的平滑函数.(tanh和Relu的拼凑)
         Script provides functional interface for Mish activation function.
         Applies the mish function element-wise:
             mish(x) = x * tanh(softplus(x)) = x * tanh(ln(1 + exp(x)))
         See additional documentation for mish class.
         """
-        super().__init__()
+        super(Mish).__init__()
 
     def forword(self, x):
         x = x * torch.tanh(nn.functional.softplus(x))
@@ -783,4 +784,58 @@ class CRF(nn.Module):
             best_tags_arr[idx] = best_tags.data.view(batch_size, -1) // nbest
 
         return torch.where(mask.unsqueeze(-1), best_tags_arr, oor_tag).permute(2, 1, 0)
+
+
+class GridPointer(nn.Module):
+    def __init__(self, head_nums, head_size, is_RoPE=True):
+        """GridPointer, 分类-网格(全局)指针模块
+        将序列的每个(start, end)作为整体来进行判断
+        代码来源:
+        网址url: [GlobalPointer：用统一的方式处理嵌套和非嵌套NER](https://kexue.fm/archives/8373)
+        ptorch版gaohongkui: https://github.com/gaohongkui/GlobalPointer_pytorch
+        """
+        super(GridPointer, self).__init__()
+        self.head_nums = head_nums
+        self.head_size = head_size
+        self.is_RoPE = is_RoPE
+
+    def forward(self, x, attention_mask, token_type_ids):
+        batch_size = x.size(0)
+        max_len = x.size(1)
+
+        outputs = torch.split(x, self.head_size * 2, dim=-1)  # <batch, len, label, head*2>
+        outputs = torch.stack(outputs, dim=-2)
+        qw, kw = outputs[..., :self.head_size], outputs[..., self.head_size:]  # <batch, len, label, head>
+        if self.is_RoPE:
+            def SinusoidalPositionEmbedding(output_size, batch_size, max_len, device):
+                """embedding of Sinusoidal-Position
+                """
+                position_ids = torch.arange(0, max_len, dtype=torch.float).unsqueeze(-1)
+                indices = torch.arange(0, output_size // 2, dtype=torch.float)
+                indices = torch.pow(10000, -2 * indices / output_size)
+                embeddings = position_ids * indices
+                embeddings = torch.stack([torch.sin(embeddings), torch.cos(embeddings)], dim=-1)
+                embeddings = embeddings.repeat((batch_size, *([1] * len(embeddings.shape))))
+                embeddings = torch.reshape(embeddings, (batch_size, max_len, output_size))
+                embeddings = embeddings.to(device)
+                return embeddings
+
+            pos_emb = SinusoidalPositionEmbedding(self.head_size, batch_size, max_len, device=x.device)  # <batch, len, head>
+            cos_pos = pos_emb[..., None, 1::2].repeat_interleave(2, dim=-1)   # <batch, len, 1, head>
+            sin_pos = pos_emb[..., None, ::2].repeat_interleave(2, dim=-1)   # <batch, len, 1, head>
+            qw2 = torch.stack([-qw[..., 1::2], qw[..., ::2]], -1)
+            qw2 = qw2.reshape(qw.shape)
+            qw = qw * cos_pos + qw2 * sin_pos
+            kw2 = torch.stack([-kw[..., 1::2], kw[..., ::2]], -1)
+            kw2 = kw2.reshape(kw.shape)
+            kw = kw * cos_pos + kw2 * sin_pos
+
+        logits = torch.einsum("bmhd, bnhd->bhmn", qw, kw)  # <batch, label, len, len>
+        pad_mask = attention_mask.unsqueeze(1).unsqueeze(1).expand(batch_size, self.head_nums, max_len, max_len)
+        logits = logits*pad_mask - (1-pad_mask)*1e12
+        # 排除下三角
+        mask = torch.tril(torch.ones_like(logits), diagonal=-1)
+        logits = (logits - mask * 1e12)
+        logits = logits / self.head_size**0.5  # scale
+        return logits
 

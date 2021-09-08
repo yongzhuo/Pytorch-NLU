@@ -12,7 +12,7 @@ import os
 path_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "."))
 sys.path.append(path_root)
 
-from slConfig import _SL_MODEL_SOFTMAX, _SL_MODEL_SPAN, _SL_MODEL_CRF
+from slConfig import _SL_MODEL_SOFTMAX, _SL_MODEL_GRID, _SL_MODEL_SPAN, _SL_MODEL_CRF
 from slConfig import _SL_DATA_CONLL, _SL_DATA_SPAN
 from slTools import get_logger
 from slOffice import Office
@@ -28,7 +28,7 @@ class SequenceLabeling:
     def __init__(self, config):
         self.config = Namespace(**config)
         self.logger = get_logger(self.config.model_save_path)
-        self.l2i, self.i2l = {}, {}
+        # self.l2i, self.i2l = {}, {}
 
     def process(self):
         """ 数据预处理, process """
@@ -42,11 +42,13 @@ class SequenceLabeling:
             self.config.corpus_type = _SL_DATA_SPAN
         else:
             raise ValueError("invalid path of corpus: {}, must endswith '.conll' or '.json'".format(self.config.path_train))
-        # 数据转化, 转化成输入训练的数据格式, SL-SPAN, SL-CRF, SL-SOFTMAX
-        if self.config.task_type.upper() in [_SL_MODEL_SPAN]:
-            sl_preprocess = corpus.preprocess_span
-        else:
+        # 数据转化, 转化成输入训练的数据格式, SL-SPAN, SL-CRF, SL-SOFTMAX, _SL_MODEL_GRID
+        if self.config.task_type.upper() in [_SL_MODEL_SOFTMAX, _SL_MODEL_CRF]:
             sl_preprocess = corpus.preprocess_common
+        elif self.config.task_type.upper() in [_SL_MODEL_GRID]:
+            sl_preprocess = corpus.preprocess_grid
+        else:
+            sl_preprocess = corpus.preprocess_span
         # 训练集/验证集划分
         if self.config.path_dev:
             xs_dev, ys_dev = read_corpus(self.config.path_dev, keys=self.config.xy_keys)
@@ -75,14 +77,17 @@ class SequenceLabeling:
             ys_sort = sorted(ys.items(), key=lambda x: x[1], reverse=True)
         else:
             raise ValueError("invalid line of data type")
+
         # 处理标签, S-city,
-        corpus.l2i["O"] = 0
-        corpus.i2l[str(0)] = "O"
+        # SOFTMAX、CRF、SPAN的情况下需要加 "O", SPAN不能放0, 必须从1开始, eg. start_id = [0,0,0,2,0,0]
+        if self.config.task_type.upper() not in [_SL_MODEL_GRID]:
+            corpus.l2i["O"] = 0
+            corpus.i2l[str(0)] = "O"
         for y, _ in ys_sort:
             # "SL-SPAN" 只保存 Label-Type, 其他保存BIO/BIOES(即BILOU-BMEWO-)/BMES/IOB(即IOB-1)/
-            if self.config.task_type.upper() in [_SL_MODEL_SPAN]:
+            if self.config.task_type.upper() in [_SL_MODEL_SPAN, _SL_MODEL_GRID]:
                 y = y.split("-")[-1]
-            if y not in corpus.l2i:
+            if y not in corpus.l2i and "O" != y:
                 corpus.l2i[str(y)] = len(corpus.l2i)
                 corpus.i2l[str(len(corpus.l2i) - 1)] = y
         # 类别先验分布
@@ -114,7 +119,7 @@ class SequenceLabeling:
             self.config.num_labels = len(l2i_conll)
             self.config.l2i_conll = copy.deepcopy(self.config.l2i)
             self.config.l2i = copy.deepcopy(l2i_conll)  # 重新赋值l2i, span转conll
-            self.config.i2l = {str(i):k for i,k in enumerate(self.config.l2i)}
+            self.config.i2l = {str(i):k for i,k in enumerate(self.config.l2i)}  # conll类型
         self.logger.info("corpus.preprocess ok!")
 
     def train(self):
@@ -182,7 +187,7 @@ if __name__ == "__main__":
         # "ERNIE": pretrained_model_dir + "/ernie-tiny",
         "BERT": pretrained_model_dir + "/bert-base-chinese",
     }
-    idx = 1  # 选择的预训练模型类型---model_type
+    idx = 0  # 选择的预训练模型类型---model_type
     model_config["pretrained_model_name_or_path"] = pretrained_model_name_or_path[model_type[idx]]
     # model_config["model_save_path"] = "../output/sequence_labeling/model_{}".format(model_type[idx] + "_" + str(get_current_time()))
     model_config["model_save_path"] = "../output/sequence_labeling/model_{}".format(model_type[idx])

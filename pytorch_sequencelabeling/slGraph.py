@@ -7,8 +7,9 @@
 
 from slLayer import PriorMultiLabelSoftMarginLoss, MultiLabelCircleLoss, LabelSmoothingCrossEntropy
 from slLayer import CRF, SpanFCLayer, FCLayer, FocalLoss, DiceLoss, Swish, Mish
+from slConfig import _SL_MODEL_SOFTMAX, _SL_MODEL_GRID, _SL_MODEL_SPAN, _SL_MODEL_CRF
 from slConfig import PRETRAINED_MODEL_CLASSES, _SL_DATA_CONLL, _SL_DATA_SPAN
-from slConfig import _SL_MODEL_SOFTMAX, _SL_MODEL_SPAN, _SL_MODEL_CRF
+from slLayer import GridPointer
 
 # torch
 from transformers import BertPreTrainedModel
@@ -38,7 +39,7 @@ class Graph(BertPreTrainedModel):
             dim_soft_label = self.graph_config.num_labels
         else:
             dim_soft_label = 1
-        # 如果用隐藏层输出
+        # 如果用隐藏层输出, 输出层的选择
         if self.graph_config.output_hidden_states:
             self.fc_span_start = SpanFCLayer(int(self.pretrained_config.hidden_size*len(self.graph_config.output_hidden_states)), self.graph_config.num_labels,
                                     is_active=self.graph_config.is_active, is_dropout=self.graph_config.is_dropout, active_type=self.graph_config.active_type)
@@ -46,6 +47,8 @@ class Graph(BertPreTrainedModel):
                                     is_active=self.graph_config.is_active, is_dropout=self.graph_config.is_dropout, active_type=self.graph_config.active_type)
             self.fc = FCLayer(int(self.pretrained_config.hidden_size*len(self.graph_config.output_hidden_states) + dim_soft_label), self.graph_config.num_labels,
                                     is_active=self.graph_config.is_active, is_dropout=self.graph_config.is_dropout, active_type=self.graph_config.active_type)
+            if self.graph_config.task_type.upper() in [_SL_MODEL_GRID]:
+                self.fc = torch.nn.Linear(int(self.pretrained_config.hidden_size*len(self.graph_config.output_hidden_states)), self.graph_config.num_labels * self.graph_config.head_size * 2)
         else:
             self.fc_span_start = SpanFCLayer(self.pretrained_config.hidden_size, self.graph_config.num_labels,
                                     is_active=self.graph_config.is_active, is_dropout=self.graph_config.is_dropout, active_type=self.graph_config.active_type)
@@ -53,6 +56,10 @@ class Graph(BertPreTrainedModel):
                                     is_active=self.graph_config.is_active, is_dropout=self.graph_config.is_dropout, active_type=self.graph_config.active_type)
             self.fc = FCLayer(self.pretrained_config.hidden_size, self.graph_config.num_labels,
                                     is_active=self.graph_config.is_active, is_dropout=self.graph_config.is_dropout, active_type=self.graph_config.active_type)
+            if self.graph_config.task_type.upper() in [_SL_MODEL_GRID]:
+                self.fc = torch.nn.Linear(self.pretrained_config.hidden_size, self.graph_config.num_labels * self.graph_config.head_size * 2)
+        # 网格(全局)指针网络, GPN
+        self.layer_grid_pointer = GridPointer(head_nums=self.graph_config.num_labels, head_size=self.graph_config.head_size, is_RoPE=True)
         # 条件随机场层, CRF
         self.layer_crf = CRF(num_tags=self.graph_config.num_labels, batch_first=True)
         # 池化层
@@ -98,6 +105,9 @@ class Graph(BertPreTrainedModel):
                     label_logits = torch.argmax(label_logits, -1).unsqueeze(2).float()
             cls_extend_start = torch.cat([bert_sequence, label_logits], dim=-1)
             logits_end_org = self.fc_span_end(cls_extend_start)
+        elif self.graph_config.task_type.upper() in [_SL_MODEL_GRID]:  # Grid-Pointer-Network
+            logits_fc = self.fc(bert_sequence)
+            logits_org = self.layer_grid_pointer(logits_fc, attention_mask, token_type_ids)
         else:
             logits_org = self.fc(bert_sequence)  # full-connect: FCLayer
         loss = None
@@ -125,6 +135,10 @@ class Graph(BertPreTrainedModel):
                 # 拼接方法导致loss-start/loss-end权重变成不可选择, 都是0.5
                 logits = torch.cat([logits_start, logits_end], 1)  # <32, 128+128, 7>
                 labels = torch.cat([labels_start, labels_end], 1)
+            elif self.graph_config.task_type.upper() in [_SL_MODEL_GRID]:
+                # 网格(全局)Grid损失
+                logits = logits_org.view(-1)
+                labels = labels.view(-1)
             # Loss
             if self.graph_config.task_type.upper() in [_SL_MODEL_CRF]:  # 条件随机场CRF损失
                 loss = self.layer_crf(emissions=logits_org, tags=labels.long(), mask=attention_mask)
@@ -157,7 +171,7 @@ class Graph(BertPreTrainedModel):
                 logits_softmax = self.softmax(logits)
                 loss = self.loss_bce(logits_softmax.view(-1), labels.view(-1))
         # 预测阶段的输出等
-        if self.graph_config.task_type.upper() in [_SL_MODEL_SOFTMAX] and not self.graph_config.is_train:
+        if self.graph_config.task_type.upper() in [_SL_MODEL_SOFTMAX, _SL_MODEL_GRID] and not self.graph_config.is_train:
             logits = logits_org  # SL-SOFTMAX
         if self.graph_config.task_type.upper() in [_SL_MODEL_SPAN] and not self.graph_config.is_train:
             logits = torch.cat([logits_start_org, logits_end_org], 1)  # <32, 128+128, 7>

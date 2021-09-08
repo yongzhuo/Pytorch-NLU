@@ -11,7 +11,7 @@ import os
 path_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "."))
 sys.path.append(path_root)
 # os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
-from slConfig import _SL_MODEL_SOFTMAX, _SL_MODEL_SPAN, _SL_MODEL_CRF
+from slConfig import _SL_MODEL_SOFTMAX, _SL_MODEL_GRID, _SL_MODEL_SPAN, _SL_MODEL_CRF
 from slConfig import _SL_DATA_CONLL, _SL_DATA_SPAN
 from slTools import get_logger, load_json
 from slOffice import Office
@@ -43,12 +43,14 @@ class SequenceLabelingPredict:
     def process(self, texts):
         """ 数据预处理, process """
         # token 转 idx, 训练集/验证集
-        datas_xy, _ = self.corpus.read_texts_from_json(texts, keys=self.config.xy_keys)
+        datas_xy, _ = self.corpus.read_texts_from_json(texts, keys=self.config.xy_keys_predict)
         if self.config.task_type.upper() in [_SL_MODEL_SPAN]:
             sl_preprocess = self.corpus.preprocess_span
+        elif self.config.task_type.upper() in [_SL_MODEL_GRID]:
+            sl_preprocess = self.corpus.preprocess_grid
         else:
             sl_preprocess = self.corpus.preprocess_common
-        dataset = sl_preprocess(datas_xy, self.config.l2i_conll, l2i_conll=self.config.l2i, sl_ctype=self.config.sl_ctype, max_len=self.config.max_len)
+        dataset = sl_preprocess(datas_xy, self.config.l2i, l2i_conll=self.config.l2i_conll, sl_ctype=self.config.sl_ctype, max_len=self.config.max_len)
         return dataset
 
     def predict(self, texts):

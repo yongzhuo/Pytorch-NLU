@@ -48,6 +48,9 @@
 
 # 使用方式
   更多样例sample详情见test/tc目录
+  - 1. 需要配置好预训练模型目录, 即变量 pretrained_model_dir、pretrained_model_name_or_path、idx等;
+  - 2. 需要配置好自己的语料地址, 即字典 model_config["path_train"]、model_config["path_dev"]
+  - 3. cd到该脚本目录下运行普通的命令行即可, 例如: python3 tcRun.py , python3 tet_tc_base_multi_label.py
 ## 文本分类(TC), Text-Classification
 ```bash
 # !/usr/bin/python

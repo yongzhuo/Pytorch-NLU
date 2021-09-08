@@ -5,10 +5,11 @@
 # @function: deal corpus(data preprocess), label转成list形式, 或者span的形式
 
 
-from slConfig import _SL_MODEL_SOFTMAX, _SL_MODEL_SPAN, _SL_MODEL_CRF
+from slConfig import _SL_MODEL_SOFTMAX, _SL_MODEL_GRID, _SL_MODEL_SPAN, _SL_MODEL_CRF
 from slConfig import _SL_DATA_CONLL, _SL_DATA_SPAN
 from slConfig import PRETRAINED_MODEL_CLASSES
 from slTools import transform_span_to_conll
+from slTools import get_pos_from_common
 from torch.utils.data import TensorDataset
 import torch
 import logging as logger
@@ -294,6 +295,80 @@ class Corpus(ABC):
         tensor_start = torch.tensor(batch_start, dtype=torch.float32)
         tensor_end = torch.tensor(batch_end, dtype=torch.float32)
         tensor_data = TensorDataset(tensor_input, tensor_attention_mask, tensor_token_type, tensor_start, tensor_end)
+        return tensor_data, batch_text
+
+    def preprocess_grid(self, data_iter, label2idx, max_len=512, sl_ctype="BIO", l2i_conll=None):
+        """  sequence-labeling, 序列标注任务
+        pre-process with x(sequence)
+        config:
+            data_iter: iter, iter of (x, y), eg. ("你是谁", [{"ent":"北京", "type":"LOC", "pos":[0,1]}])
+            label2idx: dict, dict of label to number, eg. {"问句":0}
+            max_len: int, max length of text, eg. 512
+            use_seconds: bool, either use [SEP] separate texts2 or not, eg.True
+            is_multi: bool, either sign sentence in texts with multi or not, eg. True
+            label_sep: str, sign of multi-label split, eg. "#", "|@|" 
+        Returns:
+            inputs of bert-like model
+        """
+        batch_attention_mask = []
+        batch_token_type = []
+        batch_input = []
+        batch_grid = []
+        batch_text = []
+        count = 0
+        for di in data_iter:
+            count += 1
+            x, y = di
+            token = self.tokenizer.tokenize(x)
+            token_type_id = [0] * max_len
+            input_id = self.tokenizer.convert_tokens_to_ids(token)  # 全部当成中文处理, 杜绝 "雷吉纳vsac米兰" 问题
+            # padding到最大文本长度
+            pad_len = max_len - len(input_id) - 2
+            if max_len - len(input_id) - 2 >= 0:
+                input_id = [self.cls_token_id] + input_id + [0] * pad_len + [self.sep_token_id]
+                attention_mask_id = [1] * (max_len - pad_len - 1) + [0] * (pad_len + 1)
+            else:
+                input_id = [self.cls_token_id] + input_id[:max_len - 2] + [self.sep_token_id]
+                attention_mask_id = [1] * max_len
+            # ner-label 全部转为 onehot
+            grid = [[[0 for _ in range(max_len)] for _ in range(max_len)] for _ in range(len(label2idx))]
+            grid_span = None
+            if self.config.corpus_type == _SL_DATA_CONLL:  # conll格式, eg. {"text": "南京", "label":["B-city", "I-city"]}
+                y_conll = get_pos_from_common(x, y, sep="-")  # 支持BIO, BIOES, BMES
+                grid_span = y_conll
+                for i, yi in enumerate(y_conll):
+                    yi_pos = yi.get("pos", [0, 1])
+                    yi_type = yi.get("type", "")
+                    if yi_type in label2idx and yi_pos[1] < len(input_id) - 1:
+                        grid[label2idx[yi_type]][yi_pos[0] + 1][yi_pos[1] + 1] = 1
+            elif self.config.corpus_type == _SL_DATA_SPAN:  # myx格式, 嵌套为json, eg. {"text": "南京", "label":[{"ent":"南京", "type": "city", "pos":[0,1]}]}
+                grid_span = y
+                for i, yi in enumerate(y):
+                    yi_pos = yi.get("pos", [0, 1])
+                    yi_type = yi.get("type", "")
+                    # yi_e = yi.get("ent", "")
+                    if yi_type in label2idx and yi_pos[1] < len(input_id)-1:
+                        grid[label2idx[yi_type]][yi_pos[0]+1][yi_pos[1]+1] = 1
+            batch_attention_mask.append(attention_mask_id)
+            batch_token_type.append(token_type_id)
+            batch_input.append(input_id)
+            batch_grid.append(grid)
+            batch_text.append(x)
+            # logger
+            if count <= 5 and self.config.is_train:
+                self.logger.info("*** Sample ***")
+                self.logger.info("text: %s", x)
+                self.logger.info("token: %s", " ".join([str(x) for x in token]))
+                self.logger.info("input_id: %s", " ".join([str(x) for x in input_id]))
+                self.logger.info("token_type_id: %s", " ".join([str(x) for x in token_type_id]))
+                self.logger.info("attention_mask_id: %s", " ".join([str(x) for x in attention_mask_id]))
+                self.logger.info("grid_span: {}".format(grid_span[:5]))
+        # tensor
+        tensor_attention_mask = torch.tensor(batch_attention_mask, dtype=torch.long)
+        tensor_token_type = torch.tensor(batch_token_type, dtype=torch.long)
+        tensor_input = torch.tensor(batch_input, dtype=torch.long)
+        tensor_grid = torch.tensor(batch_grid, dtype=torch.float32)
+        tensor_data = TensorDataset(tensor_input, tensor_attention_mask, tensor_token_type, tensor_grid)
         return tensor_data, batch_text
 
     def load_tokenizer(self, config):

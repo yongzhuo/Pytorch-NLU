@@ -73,6 +73,9 @@
 
 # 使用方式
   更多样例sample详情见test目录，以及slRun.py文件
+  - 1. 需要配置好预训练模型目录, 即变量 pretrained_model_dir、pretrained_model_name_or_path、idx等;
+  - 2. 需要配置好自己的语料地址, 即字典 model_config["path_train"]、model_config["path_dev"]
+  - 3. cd到该脚本目录下运行普通的命令行即可, 例如: python3 slRun.py , python3 tet_sl_base_crf.py
 ## 序列标注, sequence-labeling
 ```bash
 
@@ -153,6 +156,8 @@ This library is inspired by and references following frameworks and papers.
 * fastNLP: [https://github.com/fastnlp/fastNLP](https://github.com/fastnlp/fastNLP)
 * HanLP: [https://github.com/hankcs/HanLP](https://github.com/hankcs/HanLP)
 * FGM: [【炼丹技巧】功守道：NLP中的对抗训练 + PyTorch实现](https://zhuanlan.zhihu.com/p/91269728)
+* GlobalPointer: [GlobalPointer：用统一的方式处理嵌套和非嵌套NER](https://kexue.fm/archives/8373)
+* GlobalPointer_pytorch: [https://github.com/gaohongkui/GlobalPointer_pytorch](https://github.com/gaohongkui/GlobalPointer_pytorch)
 * pytorch-loss: [pytorch-loss](https://github.com/CoinCheung/pytorch-loss)
 * PriorLoss: [通过互信息思想来缓解类别不平衡问题](https://spaces.ac.cn/archives/7615)
 * CircleLoss: [将“softmax+交叉熵”推广到多标签分类问题](https://spaces.ac.cn/archives/7359)

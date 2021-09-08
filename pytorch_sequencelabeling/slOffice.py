@@ -11,7 +11,7 @@ from tensorboardX import SummaryWriter
 import torch
 
 from slTools import chinese_extract_extend, get_pos_from_common, get_pos_from_span, mertics_report_sequence_labeling
-from slConfig import _SL_MODEL_SOFTMAX, _SL_MODEL_SPAN, _SL_MODEL_CRF
+from slConfig import _SL_MODEL_SOFTMAX, _SL_MODEL_GRID, _SL_MODEL_SPAN, _SL_MODEL_CRF
 from slConfig import _SL_DATA_CONLL, _SL_DATA_SPAN
 from slAdversarial import FGM
 from slGraph import Graph
@@ -85,10 +85,10 @@ class Office:
         for batch_data in tqdm(data_loader, desc="evaluate"):
             batch_data = [bd.to(self.device) for bd in batch_data]  # device
             headers = ["input_ids", "attention_mask", "token_type_ids", "labels", "labels_start", "labels_end"]  # 必须按照顺序
-            if self.config.task_type.upper() in [_SL_MODEL_SPAN]:  # SPAN
-                inputs = dict(zip(headers[:-3] + headers[-2:], batch_data))
-            elif self.config.task_type.upper() in [_SL_MODEL_SOFTMAX, _SL_MODEL_CRF]:  # CRF or softmax
+            if self.config.task_type.upper() in [_SL_MODEL_SOFTMAX, _SL_MODEL_CRF, _SL_MODEL_GRID]:  # CRF or softmax
                 inputs = dict(zip(headers[:-2], batch_data))
+            elif self.config.task_type.upper() in [_SL_MODEL_SPAN]:  # SPAN
+                inputs = dict(zip(headers[:-3] + headers[-2:], batch_data))
             else:
                 raise ValueError("invalid data_loader, length of batch_data must be 4 or 6!")
             with torch.no_grad():
@@ -167,6 +167,41 @@ class Office:
                     self.logger.info("pos_true:{}".format(pos_true))
                 count += 1
             i2l = self.config.i2l
+        elif self.config.task_type.upper() in [_SL_MODEL_GRID]:
+            ys_true_id = ys_true_id.tolist()
+            ys_pred_id = ys_pred_id.tolist()
+            res_myz_true = []
+            res_myz_pred = []
+            count = 0
+            for x, y, z in zip(ys_pred_id, ys_true_id, texts[:len(ys_pred_id)]):
+                pos_pred, pos_true = [], []
+                x,y = np.array(x), np.array(y)
+                x[:, [0, -1]] -= np.inf
+                x[:, :, [0, -1]] -= np.inf
+                y[:, [0, -1]] -= np.inf
+                y[:, :, [0, -1]] -= np.inf
+                for pos_type, pos_start, pos_end in zip(*np.where(x > self.config.grid_pointer_threshold)):
+                    pos_start, pos_end = pos_start-1, pos_end-1
+                    pos_type = self.config.i2l[str(int(pos_type))]
+                    if pos_type != "O":
+                        line = {"type": pos_type, "pos": [pos_start, pos_end], "ent": z[pos_start:pos_end+1]}
+                        pos_pred.append(line)
+                for pos_type, pos_start, pos_end in zip(*np.where(y > self.config.grid_pointer_threshold)):
+                    pos_start, pos_end = pos_start-1, pos_end-1
+                    pos_type = self.config.i2l[str(int(pos_type))]
+                    if pos_type != "O":
+                        line = {"type": pos_type, "pos": [pos_start, pos_end], "ent": z[pos_start:pos_end+1]}
+                        pos_true.append(line)
+                res_myz_pred += [{"text":z, "label":pos_pred}]
+                res_myz_true += [{"text":z, "label":pos_true}]
+                if count < 5:
+                    # self.logger.info("y_pred:{}".format(x))
+                    # self.logger.info("y_true:{}".format(y))
+                    self.logger.info("pos_pred:{}".format(pos_pred[:5]))
+                    self.logger.info("pos_true:{}".format(pos_true[:5]))
+                count += 1
+            i2l = self.config.i2l
+
         # 评估
         self.logger.info("i2l:{}".format(i2l))
         mertics_dict, mertics_report, mcm_report, y_error_dict = mertics_report_sequence_labeling(res_myz_true, res_myz_pred, i2l)
@@ -238,6 +273,23 @@ class Office:
                 # if count < 5:
                 #     self.logger.info("pos_pred:{}".format(pos_pred))
                 # count += 1
+        elif self.config.task_type.upper() in [_SL_MODEL_GRID]:
+            # count = 0
+            for logits, text_i in zip(ys_pred_id, texts[:len(ys_pred_id)]):
+                pos_pred = []
+                logits = np.array(logits)
+                logits[:, [0, -1]] -= np.inf
+                logits[:, :, [0, -1]] -= np.inf
+                for pos_type, pos_start, pos_end in zip(*np.where(logits > self.config.grid_pointer_threshold)):
+                    pos_start, pos_end = pos_start-1, pos_end-1
+                    pos_type = self.config.i2l.get(str(int(pos_type)), "")
+                    if pos_type != "O":
+                        line = {"type": pos_type, "pos": [pos_start, pos_end], "ent": text_i[pos_start:pos_end + 1]}
+                        pos_pred.append(line)
+                res_myz_pred += [{"label": pos_pred, "text": text_i}]
+                # if count < 5:
+                #     self.logger.info("pos_pred:{}".format(pos_pred))
+                # count += 1
         return res_myz_pred
 
     def train_model(self):
@@ -292,12 +344,12 @@ class Office:
                 batch_data = [bd.to(self.device) for bd in batch_data]  # device
                 # warning: 必须按照该顺序zip
                 # SPAN:  tensor_input, tensor_attention_mask, tensor_token_type, tensor_start, tensor_end
-                # CRF-SOFTMAX:  tensor_input, tensor_attention_mask, tensor_token_type, tensor_label
+                # CRF-SOFTMAX-GRID:  tensor_input, tensor_attention_mask, tensor_token_type, tensor_label
                 headers = ["input_ids", "attention_mask", "token_type_ids", "labels", "labels_start", "labels_end"]
-                if self.config.task_type.upper() in [_SL_MODEL_SPAN]:  # SPAN
-                    inputs = dict(zip(headers[:-3] + headers[-2:], batch_data))
-                elif self.config.task_type.upper() in [_SL_MODEL_SOFTMAX, _SL_MODEL_CRF]:  # CRF or softmax
+                if self.config.task_type.upper() in [_SL_MODEL_SOFTMAX, _SL_MODEL_CRF, _SL_MODEL_GRID]:  # CRF or softmax
                     inputs = dict(zip(headers[:-2], batch_data))
+                elif self.config.task_type.upper() in [_SL_MODEL_SPAN]:  # SPAN
+                    inputs = dict(zip(headers[:-3] + headers[-2:], batch_data))
                 else:
                     raise ValueError("invalid data_loader, length of batch_data must be 4 or 6!")
                 # model

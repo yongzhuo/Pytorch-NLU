@@ -31,6 +31,7 @@ PRETRAINED_MODEL_CLASSES = {
 
 # 标识符
 _SL_MODEL_SOFTMAX = "SL-SOFTMAX"
+_SL_MODEL_GRID = "SL-GRID"  # 网格, 即矩阵, Global-Pointer
 _SL_MODEL_SPAN = "SL-SPAN"
 _SL_MODEL_CRF = "SL-CRF"
 _SL_DATA_CONLL = "DATA-CONLL"  # conll
@@ -54,7 +55,8 @@ model_config = {
     "task_type": "SL-SPAN",  # 任务类型, "SL-SOFTMAX", "SL-CRF", "SL-SPAN", "sequence_labeling"
     "model_type": "BERT",   # 预训练模型类型, 如BERT/ROBERTA/ERNIE/ELECTRA/ALBERT
     "loss_type": "BCE",  # 损失函数类型, 可选 None(BCE), BCE, MSE, FOCAL_LOSS,
-                           # multi-label:  MARGIN_LOSS, PRIOR_MARGIN_LOSS, CIRCLE_LOSS等
+                                 # multi-label:  MARGIN_LOSS, PRIOR_MARGIN_LOSS, CIRCLE_LOSS等
+                                 # 备注: "SL-GRID"类型不要用BCE、PRIOR_MARGIN_LOSS
     "batch_size": 32,  # 批尺寸
     "num_labels": 0,   # 类别数, 自动更新
     "max_len": 128,    # 最大文本长度, None和-1则为自动获取覆盖0.95数据的文本长度, 0则取训练语料的最大长度, 具体的数值就是强制padding到max_len
@@ -86,10 +88,13 @@ model_config = {
     "save_best_mertics_key": ["micro_avg", "f1-score"],  # 模型存储的判别指标, index-1可选: [micro_avg, macro_avg, weighted_avg],
                                                                           # index-2可选: [precision, recall, f1-score]
     "multi_label_threshold": 0.5,  # 多标签分类时候生效, 大于该阈值则认为预测对的
+    "grid_pointer_threshold": 0,  # 网格(全局)指针网络阈值, 大于该阈值则认为预测对的
+    "xy_keys_predict": ["text", "label"],  # 读取数据的格式, predict预测的时候用
     # "xy_keys": ["text", "label"],  # SPAN格式的数据, text, label在file中对应的keys
     "xy_keys": [0, 1],     # CONLL格式的数据, text, label在file中对应的keys, colln时候选择[0,1]等integer
     "label_sep": "|myz|",  # "|myz|" 多标签数据分割符, 用于多标签分类语料中
     "sl_ctype": "BIO",   #  数据格式sl-type, BIO, BMES, BIOES, 只在"corpus_type": "MYX", "task_type": "SL-CRL"或"SL-SOFTMAX"时候生效
+    "head_size": 64,  # task_type=="SL-GRID"用
 
     # 是否对抗学习
     "adv_emb_name": "word_embeddings.",  # emb_name这个参数要换成你模型中embedding的参数名, model.embeddings.word_embeddings.weight

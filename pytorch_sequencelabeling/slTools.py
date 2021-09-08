@@ -465,12 +465,13 @@ def transform_span_to_conll(y, label_id, l2i_conll, sl_ctype):
     return label_id
 
 
-def get_pos_from_common(words0, tag1):
+def get_pos_from_common(words0, tag1, sep="-"):
     """从common模型的输出中重构标注, 即获取未知信息---position
     common analysis for sequence-labeling
     Args:
         words0: String, origin text,  eg. "沪是上海"
         tag1  : List, common-output of labels,  eg. ["S-city", "O", "B-city", "I-city"]
+        sep   : String, split in tag, eg. "-"、"_"
     Returns:
         reault: List, eg. [{"type":"city", "ent":"沪", "pos":[2:4]}]
     """
@@ -481,7 +482,7 @@ def get_pos_from_common(words0, tag1):
     sentence = ""
     types = ""
     for i in range(len(tag1)):
-        if tag1[i].startswith("S-"):
+        if tag1[i].startswith("S" + sep):
             ws += words0[i]
             start_pos_1 = i
             end_pos_1 = i
@@ -491,7 +492,7 @@ def get_pos_from_common(words0, tag1):
             ws = ""
             types = ""
 
-        if tag1[i].startswith("B-"):
+        if tag1[i].startswith("B" + sep):
             if len(ws) > 0:
                 res.append([ws, start_pos_1, end_pos_1, types])
                 ws = ""
@@ -503,7 +504,7 @@ def get_pos_from_common(words0, tag1):
                 sentence += words0[i]
                 types = tag1[i][2:]
 
-        elif tag1[i].startswith("I-"):
+        elif tag1[i].startswith("I" + sep):
             if len(ws) > 0 and types == tag1[i][2:]:
                 ws += words0[i]
                 sentence += words0[i]
@@ -521,7 +522,7 @@ def get_pos_from_common(words0, tag1):
                 sentence += words0[i]
                 types = tag1[i][2:]
 
-        elif tag1[i].startswith("M-"):
+        elif tag1[i].startswith("M" + sep):
             if len(ws) > 0 and types == tag1[i][2:]:
                 ws += words0[i]
                 sentence += words0[i]
@@ -539,7 +540,7 @@ def get_pos_from_common(words0, tag1):
                 sentence += words0[i]
                 types = tag1[i][2:]
 
-        elif tag1[i].startswith('E-'):
+        elif tag1[i].startswith("E" + sep):
             if len(ws) > 0 and types == tag1[i][2:]:
                 ws += words0[i]
                 sentence += words0[i]
