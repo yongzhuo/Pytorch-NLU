@@ -1,6 +1,6 @@
 
 # [***pytorch-textclassification***](https://github.com/yongzhuo/Pytorch-NLU/pytorch_textclassification)
->>> pytorch-textclassification是一个以pytorch和transformers为基础，专注于文本分类的轻量级自然语言处理工具。
+>>> pytorch-textclassification是一个以pytorch和transformers为基础，专注于中文文本分类的轻量级自然语言处理工具，支持多类分类、多标签分类等。
 
 
 ## 目录
@@ -16,7 +16,7 @@
   
 # 数据
 ## 数据来源
-所有数据集均来源于网络，只做整理供大家提取方便，如果有侵权等问题，请及时联系删除。
+免责声明：以下数据集由公开渠道收集而成, 只做汇总说明; 科学研究、商用请联系原作者; 如有侵权, 请及时联系删除。
   * [baidu_event_extract_2020](https://aistudio.baidu.com/aistudio/competition/detail/32?isFromCcf=true), 项目以 2020语言与智能技术竞赛：事件抽取任务中的数据作为[多分类标签的样例数据](https://github.com/percent4/keras_bert_multi_label_cls)，借助多标签分类模型来解决, 共13456个样本, 65个类别;
   * [AAPD-dataset](https://git.uwaterloo.ca/jimmylin/Castor-data/tree/master/datasets/AAPD),  数据集出现在论文-SGM: Sequence Generation Model for Multi-label Classification, 英文多标签分类语料, 共55840样本, 54个类别;
   * [toutiao-news](https://github.com/fate233/toutiao-multilevel-text-classfication-dataset), 今日头条新闻标题, 多标签分类语料, 约300w-语料, 1000+类别;

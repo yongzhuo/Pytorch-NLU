@@ -2,7 +2,7 @@
 # !/usr/bin/python
 # @time     :2019/11/01 10:17
 # @author   :Mo
-# @function :setup of Macadam
+# @function :setup of Pytorch-NLU
 
 
 from setuptools import find_packages, setup
@@ -10,12 +10,12 @@ import codecs
 
 
 # Package meta-data.
-NAME = "Macadam"
-DESCRIPTION = "Joint-NER-and-RE"
-URL = "https://github.com/yongzhuo/Macadam"
+NAME = "Pytorch-NLU"
+DESCRIPTION = "Pytorch-NLU"
+URL = "https://github.com/yongzhuo/Pytorch-NLU"
 EMAIL = "1903865025@qq.com"
 AUTHOR = "yongzhuo"
-LICENSE = "MIT"
+LICENSE = "Apache"
 
 with codecs.open("README.md", "r", "utf-8") as reader:
     long_description = reader.read()
@@ -23,7 +23,7 @@ with codecs.open("requirements.txt", "r", "utf-8") as reader:
     install_requires = list(map(lambda x: x.strip(), reader.readlines()))
 
 setup(name=NAME,
-        version="0.1.1",
+        version="0.0.1",
         description=DESCRIPTION,
         long_description=long_description,
         long_description_content_type="text/markdown",
@@ -59,11 +59,4 @@ if __name__ == "__main__":
 
 # python setup.py bdist_wheel --universal
 # twine upload dist/*
-
-# nohup python s00_trainer.py > trainer.log 2>&1 &
-# pip install -i https://pypi.tuna.tsinghua.edu.cn/simple tensorflow==1.15.2
-
-# pip install -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements-all.txt
-
-
 

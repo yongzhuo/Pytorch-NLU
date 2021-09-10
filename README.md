@@ -30,7 +30,7 @@ pip install -i https://pypi.tuna.tsinghua.edu.cn/simple Pytorch-NLU
 
 # 数据
 ## 数据来源
-免责声明：以下数据集由公开渠道收集而成, 只做说明; 科学研究、商用请联系原作者; 如有侵权, 请及时联系删除。
+免责声明：以下数据集由公开渠道收集而成, 只做汇总说明; 科学研究、商用请联系原作者; 如有侵权, 请及时联系删除。
 ### 文本分类
   * [baidu_event_extract_2020](https://aistudio.baidu.com/aistudio/competition/detail/32?isFromCcf=true), 项目以 2020语言与智能技术竞赛：事件抽取任务中的数据作为[多分类标签的样例数据](https://github.com/percent4/keras_bert_multi_label_cls)，借助多标签分类模型来解决, 共13456个样本, 65个类别;
   * [AAPD-dataset](https://git.uwaterloo.ca/jimmylin/Castor-data/tree/master/datasets/AAPD),  数据集出现在论文-SGM: Sequence Generation Model for Multi-label Classification, 英文多标签分类语料, 共55840样本, 54个类别;
@@ -91,6 +91,7 @@ CONLL格式如下:
   - 1. 需要配置好预训练模型目录, 即变量 pretrained_model_dir、pretrained_model_name_or_path、idx等;
   - 2. 需要配置好自己的语料地址, 即字典 model_config["path_train"]、model_config["path_dev"]
   - 3. cd到该脚本目录下运行普通的命令行即可, 例如: python3 slRun.py , python3 tcRun.py , python3 tet_tc_base_multi_label.py, python3 tet_sl_base_crf.py
+  - 4. 如果训练时候出现指标为零或者很低的情况, 大概率是学习率、损失函数配错了
 ## 文本分类(TC), text-classification
 ```bash
 # !/usr/bin/python

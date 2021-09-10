@@ -1,6 +1,6 @@
 
 # [***pytorch-sequencelabeling***](https://github.com/yongzhuo/Pytorch-NLU/pytorch_sequencelabeling)
->>> pytorch-sequencelabeling是一个支持softmax、crf、span等模型，只依赖pytorch、transformers、tensorboardX和numpy，专注于序列标注的轻量级自然语言处理工具包。
+>>> pytorch-sequencelabeling是一个支持softmax、crf、span、grid等模型，只依赖pytorch、transformers、tensorboardX和numpy，专注于序列标注的轻量级自然语言处理工具包。
 
 
 ## 目录
@@ -17,7 +17,7 @@
   
 # 数据
 ## 数据来源
-免责声明：以下数据集由公开渠道收集而成, 只做说明; 科学研究、商用请联系原作者; 如有侵权, 请及时联系删除。
+免责声明：以下数据集由公开渠道收集而成, 只做汇总说明; 科学研究、商用请联系原作者; 如有侵权, 请及时联系删除。
 ### 通用数据集
   * ***Corpus_China_People_Daily***, 由北京大学计算语言学研究所发布的《人民日报》标注语料库PFR, 来源为《人民日报》1998上半年, 2014年, 2015上半年-2016.1-2017.1-2018.1(新时代人民日报分词语料库NEPD)等的内容, 包括中文分词cws、词性标注pos、命名实体识别ner...等标注数据;
   * ***Corpus_CTBX***, 由宾夕法尼亚大学(UPenn)开发并通过语言数据联盟（LDC） 发布的中文句法树库(Chinese Treebank), 来源为新闻数据、新闻杂志、广播新闻、广播谈话节目、微博、论坛、聊天对话和电话数据等, 包括中文分词cws、词性标注pos、命名实体识别ner...等标注数据;

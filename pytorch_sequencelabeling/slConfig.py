@@ -52,9 +52,9 @@ model_config = {
     "path_tet": None,    # 验证语料地址, 必传, 可为None
 
     "corpus_type": "DATA-SPAN",  # 语料数据格式, "DATA-CONLL", "DATA-SPAN"
-    "task_type": "SL-SPAN",  # 任务类型, "SL-SOFTMAX", "SL-CRF", "SL-SPAN", "sequence_labeling"
+    "task_type": "SL-SPAN",  # 任务类型, "SL-SOFTMAX", "SL-CRF", "SL-SPAN", "SL-GRID", "sequence_labeling"
     "model_type": "BERT",   # 预训练模型类型, 如BERT/ROBERTA/ERNIE/ELECTRA/ALBERT
-    "loss_type": "BCE",  # 损失函数类型, 可选 None(BCE), BCE, MSE, FOCAL_LOSS,
+    "loss_type": "MARGIN_LOSS",  # 损失函数类型, 可选 None(BCE), BCE, MSE, FOCAL_LOSS,
                                  # multi-label:  MARGIN_LOSS, PRIOR_MARGIN_LOSS, CIRCLE_LOSS等
                                  # 备注: "SL-GRID"类型不要用BCE、PRIOR_MARGIN_LOSS
     "batch_size": 32,  # 批尺寸

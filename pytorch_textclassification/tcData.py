@@ -161,7 +161,20 @@ class Corpus(ABC):
         Returns:
             tokenizer: class
         """
-        tokenizer = PRETRAINED_MODEL_CLASSES[config.model_type][1].from_pretrained(config.pretrained_model_name_or_path)
+        class PretrainedTokenizer(PRETRAINED_MODEL_CLASSES[config.model_type][1]):
+            """ 避免自带的tokenize删除空白、或者是其他特殊字符的情况 """
+            def tokenize(self, text):
+                tokens = []
+                for t in text:
+                    if self.do_lower_case:
+                        t = t.lower()
+                    if t in self.vocab:
+                        tokens.append(t)
+                    else:
+                        tokens.append("[UNK]")
+                return tokens
+
+        tokenizer = PretrainedTokenizer.from_pretrained(config.pretrained_model_name_or_path)
         tokenizer.add_special_tokens({"additional_special_tokens": self.ADDITIONAL_SPECIAL_TOKENS})
         return tokenizer
 
