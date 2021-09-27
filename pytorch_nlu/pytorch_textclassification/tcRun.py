@@ -10,6 +10,8 @@ import sys
 import os
 path_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "."))
 sys.path.append(path_root)
+from tcConfig import model_config
+os.environ["CUDA_VISIBLE_DEVICES"] = model_config.get("CUDA_VISIBLE_DEVICES", "0")
 from tcConfig import _TC_MULTI_CLASS, _TC_MULTI_LABEL
 from tcTools import get_logger
 from tcOffice import Office
@@ -123,11 +125,10 @@ if __name__ == "__main__":
         save_steps = 320  # 存储步数
         ee = 0
     # 训练-验证语料地址, 可以只输入训练地址
-    # path_corpus = path_root + "/corpus/text_classification/school"
-    path_corpus = path_root + "/corpus/text_classification/org_tnews"
-
-    path_train = os.path.join(path_corpus, "train.json")
-    path_dev = os.path.join(path_corpus, "dev.json")
+    path_corpus = path_root + "/corpus/text_classification/org_multi-label_school"
+    # path_corpus = path_root + "/corpus/text_classification/org_tnews"
+    path_train = os.path.join(path_corpus, "train.json.augment")
+    path_dev = os.path.join(path_corpus, "dev.json.augment")
     model_config["evaluate_steps"] = evaluate_steps  # 评估步数
     model_config["save_steps"] = save_steps  # 存储步数
     model_config["path_train"] = path_train
@@ -145,17 +146,17 @@ if __name__ == "__main__":
         "ROBERTA": pretrained_model_dir + "/chinese_roberta_wwm_ext_pytorch",
         "ALBERT": pretrained_model_dir + "/albert_base_v1",
         "XLNET": pretrained_model_dir + "/chinese_xlnet_mid_pytorch",
-        "ERNIE": pretrained_model_dir + "/ERNIE_stable-1.0.1-pytorch",
-        # "ERNIE": pretrained_model_dir + "/ernie-tiny",
+        # "ERNIE": pretrained_model_dir + "/ERNIE_stable-1.0.1-pytorch",
+        "ERNIE": pretrained_model_dir + "/ernie-tiny",
         "BERT": pretrained_model_dir + "/bert-base-chinese",
     }
-    idx = 0  # 选择的预训练模型类型---model_type
+    idx = 1  # 选择的预训练模型类型---model_type
     model_config["pretrained_model_name_or_path"] = pretrained_model_name_or_path[model_type[idx]]
     # model_config["model_save_path"] = "../output/text_classification/model_{}".format(model_type[idx] + "_" + str(get_current_time()))
     model_config["model_save_path"] = "../output/text_classification/model_{}".format(model_type[idx])
     model_config["model_type"] = model_type[idx]
 
-    os.environ["CUDA_VISIBLE_DEVICES"] = str(model_config["CUDA_VISIBLE_DEVICES"])
+    # os.environ["CUDA_VISIBLE_DEVICES"] = str(model_config["CUDA_VISIBLE_DEVICES"])
 
     # main
     lc = TextClassification(model_config)

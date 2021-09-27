@@ -12,7 +12,7 @@ import json
 import sys
 import os
 path_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
-path_sys = os.path.join(path_root, "pytorch_sequencelabeling")
+path_sys = os.path.join(path_root, "pytorch_nlu", "pytorch_sequencelabeling")
 sys.path.append(path_sys)
 print(path_root)
 print(path_sys)

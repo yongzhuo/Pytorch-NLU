@@ -109,9 +109,11 @@ import json
 import sys
 import os
 path_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
-sys.path.append(os.path.join(path_root, "pytorch_textclassification"))
+path_sys = os.path.join(path_root, "pytorch_nlu", "pytorch_textclassification")
 print(path_root)
 # 分类下的引入, pytorch_textclassification
+from tcConfig import model_config
+os.environ["CUDA_VISIBLE_DEVICES"] = model_config.get("CUDA_VISIBLE_DEVICES", "0")
 from tcTools import get_current_time
 from tcRun import TextClassification
 from tcConfig import model_config
@@ -157,11 +159,13 @@ import json
 import sys
 import os
 path_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
-path_sys = os.path.join(path_root, "pytorch_sequencelabeling")
+path_sys = os.path.join(path_root, "pytorch_nlu", "pytorch_sequencelabeling")
 sys.path.append(path_sys)
 print(path_root)
 print(path_sys)
 # 分类下的引入, pytorch_textclassification
+from tcConfig import model_config
+os.environ["CUDA_VISIBLE_DEVICES"] = model_config.get("CUDA_VISIBLE_DEVICES", "0")
 from slTools import get_current_time
 from slRun import SequenceLabeling
 from slConfig import model_config

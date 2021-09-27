@@ -188,14 +188,14 @@ class MultiLabelCircleLoss(nn.Module):
 
     def forward(self, logits, labels):
         logits = (1 - 2 * labels) * logits              # <3, 4>
-        logits_neg = logits - labels * self.inf         # <3, 4>
-        logits_pos = logits - (1 - labels) * self.inf   # <3, 4>
+        logits_neg = logits - labels * self.inf         # <3, 4>, 减去选中多标签的index
+        logits_pos = logits - (1 - labels) * self.inf   # <3, 4>, 减去其他不需要的多标签Index
         zeros = torch.zeros_like(logits[..., :1])       # <3, 1>
         logits_neg = torch.cat([logits_neg, zeros], dim=-1)  # <3, 5>
         logits_pos = torch.cat([logits_pos, zeros], dim=-1)  # <3, 5>
         neg_loss = torch.logsumexp(logits_neg, dim=-1)       # <3, >
         pos_loss = torch.logsumexp(logits_pos, dim=-1)       # <3, >
-        loss = neg_loss + pos_loss
+        loss = neg_loss + pos_loss                           # pos比零大, neg比零小
         if "mean" == self.reduction:
             loss = loss.mean()
         else:

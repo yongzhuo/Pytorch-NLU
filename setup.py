@@ -5,6 +5,7 @@
 # @function :setup of Pytorch-NLU
 
 
+from pytorch_nlu.version import __version__
 from setuptools import find_packages, setup
 import codecs
 
@@ -23,23 +24,32 @@ with codecs.open("requirements.txt", "r", "utf-8") as reader:
     install_requires = list(map(lambda x: x.strip(), reader.readlines()))
 
 setup(name=NAME,
-        version="0.0.1",
+        version=__version__,
         description=DESCRIPTION,
         long_description=long_description,
         long_description_content_type="text/markdown",
         author=AUTHOR,
         author_email=EMAIL,
         url=URL,
-        packages=find_packages(exclude=("test")),
+        packages=find_packages(),
         install_requires=install_requires,
-        include_package_data=True,
+        package_data={"pytorch_nlu": ["*.*", "corpus/*",
+                                      "pytorch_textclassification/*"
+                                      "pytorch_sequencelabeling/*",
+                                      "corpus/text_classification/*",
+                                      "corpus/sequence_labeling/*",
+                                      "corpus/text_classification/school/*",
+                                      "corpus/text_classification/tnews/*",
+                                      "corpus/sequence_labeling/ner_china_people_daily_1998_conll/*",
+                                      "corpus/sequence_labeling/ner_china_people_daily_1998_span/*",]},
         license=LICENSE,
-        classifiers=["License :: OSI Approved :: MIT License",
+        classifiers=["License :: OSI Approved :: Apache License",
                      "Programming Language :: Python :: 3.4",
                      "Programming Language :: Python :: 3.5",
                      "Programming Language :: Python :: 3.6",
                      "Programming Language :: Python :: 3.7",
                      "Programming Language :: Python :: 3.8",
+                     "Programming Language :: Python :: 3.9",
                      "Programming Language :: Python :: Implementation :: CPython",
                      "Programming Language :: Python :: Implementation :: PyPy"],)
 

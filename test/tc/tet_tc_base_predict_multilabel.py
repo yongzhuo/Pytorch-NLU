@@ -11,7 +11,7 @@ import json
 import sys
 import os
 path_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
-sys.path.append(os.path.join(path_root, "pytorch_textclassification"))
+path_sys = os.path.join(path_root, "pytorch_nlu", "pytorch_textclassification")
 print(path_root)
 # os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 from tcPredict import TextClassificationPredict
