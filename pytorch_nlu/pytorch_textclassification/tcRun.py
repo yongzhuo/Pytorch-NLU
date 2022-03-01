@@ -76,11 +76,11 @@ class TextClassification:
         self.config.i2l = corpus.i2l
         # token 转 idx, 训练集/验证集
         random.shuffle(xs_train)  # shuffle扰动
-        self.train_data = corpus.preprocess(xs_train, self.config.l2i, max_len=self.config.max_len)
-        self.dev_data = corpus.preprocess(xs_dev, self.config.l2i, max_len=self.config.max_len)
+        self.train_data = corpus.preprocess(xs_train, self.config.l2i, max_len=self.config.max_len, label_sep=self.config.label_sep)
+        self.dev_data = corpus.preprocess(xs_dev, self.config.l2i, max_len=self.config.max_len, label_sep=self.config.label_sep)
         # 测试集
         xs_tet, ys_tet = corpus.read_corpus_from_json(self.config.path_tet, keys=self.config.xy_keys) if self.config.path_tet else ([], [])
-        self.tet_data = corpus.preprocess(xs_tet, self.config.l2i, max_len=self.config.max_len) if self.config.path_tet else None
+        self.tet_data = corpus.preprocess(xs_tet, self.config.l2i, max_len=self.config.max_len, label_sep=self.config.label_sep) if self.config.path_tet else None
         self.logger.info("corpus.preprocess ok!")
 
     def train(self):
