@@ -12,7 +12,7 @@ import os
 path_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "."))
 sys.path.append(path_root)
 
-from tcConfig import model_config
+from slConfig import model_config
 os.environ["CUDA_VISIBLE_DEVICES"] = model_config.get("CUDA_VISIBLE_DEVICES", "0")
 from slConfig import _SL_MODEL_SOFTMAX, _SL_MODEL_GRID, _SL_MODEL_SPAN, _SL_MODEL_CRF
 from slConfig import _SL_DATA_CONLL, _SL_DATA_SPAN
@@ -157,7 +157,8 @@ if __name__ == "__main__":
     from slTools import get_current_time
     # 预训练模型地址
     if platform.system().lower() == 'windows':
-        pretrained_model_dir = "D:/pretrain_models/pytorch"
+        # pretrained_model_dir = "D:/pretrain_models/pytorch"
+        pretrained_model_dir = "E:/DATA/bert-model/00_pytorch"
         evaluate_steps = 2  # 评估步数
         save_steps = 2  # 存储步数
     else:

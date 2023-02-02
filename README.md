@@ -5,7 +5,7 @@
 [![Stars](https://img.shields.io/github/stars/yongzhuo/Pytorch-NLU?style=social)](https://github.com/yongzhuo/Pytorch-NLU/stargazers)
 [![Forks](https://img.shields.io/github/forks/yongzhuo/Pytorch-NLU.svg?style=social)](https://github.com/yongzhuo/Pytorch-NLU/network/members)
 [![Join the chat at https://gitter.im/yongzhuo/Pytorch-NLU](https://badges.gitter.im/yongzhuo/Pytorch-NLU.svg)](https://gitter.im/yongzhuo/Pytorch-NLU?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
->>> Pytorch-NLU是一个只依赖pytorch、transformers、numpy、tensorboardX，专注于文本分类、序列标注的极简自然语言处理工具包。
+>>> Pytorch-NLU是一个只依赖pytorch、transformers、numpy、tensorboardX，专注于文本分类、序列标注、文本摘要的极简自然语言处理工具包。
 支持BERT、ERNIE、ROBERTA、NEZHA、ALBERT、XLNET、ELECTRA、GPT-2、TinyBERT、XLM、T5等预训练模型;
 支持BCE-Loss、Focal-Loss、Circle-Loss、Prior-Loss、Dice-Loss、LabelSmoothing等损失函数;
 具有依赖轻量、代码简洁、注释详细、调试清晰、配置灵活、拓展方便、适配NLP等特性。
@@ -17,6 +17,7 @@
 * [使用方式](#使用方式)
 * [paper](#paper)
 * [参考](#参考)
+* [实验](#实验)
 
 
 # 安装 
@@ -83,6 +84,14 @@ CONLL格式如下:
 队 I-ORG
 和 O
 
+
+3. 文本摘要  (txt格式, 每行为一个json):
+
+3.1 抽取式文本摘要格式:
+{"label": [0, 1, 0, 0, 1, 0, 0, 0, 0, 0], "text": ["针对现有法向量估值算法都只能适用于某一类特定形状模型的问题。", "提出三维点云模糊分类的法向量估值算法。", "利用模糊推理系统对模型的点云数据分类。", "根据点云在不同形状区域的分布情况和曲率变化给出模糊规则。", "将点云分成属于平滑形状区域、薄片形状区域和尖锐形状区域三类。", "每类点云对应给出特定的法向量估值算法。", "由于任意模型形状分布的差别。", "其点云数据经过模糊分类后调用相应的估值算法次数会有差别。", "因此采用牙齿模型点云数据验证了算法的可行性。", "经过与三种典型算法比较可以看出本算法估算准确、简单可行。"]}
+{"label": [0, 0, 1, 1, 0, 0], "text": ["医院物联网是物联网技术在医疗行业应用的集中体现。", "在简单介绍医院物联网基本概念的基础上。", "结合物联网机制和医院的实际特点。", "探讨了适用于医院物联网的体系结构。", "并分析了构建中的关键技术。", "包括医院物联网的标准建设、中间件技术及嵌入式电子病历的研究与设计等。"]}
+
+
 ```
 
 
@@ -94,8 +103,6 @@ CONLL格式如下:
   - 4. 如果训练时候出现指标为零或者很低的情况, 大概率是学习率、损失函数配错了
 ## 文本分类(TC), text-classification
 ```bash
-# !/usr/bin/python
-# -*- coding: utf-8 -*-
 # !/usr/bin/python
 # -*- coding: utf-8 -*-
 # @time    : 2021/2/23 21:34
@@ -110,26 +117,33 @@ import sys
 import os
 path_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
 path_sys = os.path.join(path_root, "pytorch_nlu", "pytorch_textclassification")
+sys.path.append(path_sys)
 print(path_root)
+print(path_sys)
 # 分类下的引入, pytorch_textclassification
-from tcConfig import model_config
-os.environ["CUDA_VISIBLE_DEVICES"] = model_config.get("CUDA_VISIBLE_DEVICES", "0")
 from tcTools import get_current_time
 from tcRun import TextClassification
 from tcConfig import model_config
 
-evaluate_steps = 320  # 评估步数
-save_steps = 320  # 存储步数
-# pytorch预训练模型目录, 必填
-pretrained_model_name_or_path = "bert-base-chinese"
-# 训练-验证语料地址, 可以只输入训练地址
-path_corpus = os.path.join(path_root, "corpus", "text_classification", "school")
-path_train = os.path.join(path_corpus, "train.json")
-path_dev = os.path.join(path_corpus, "dev.json")
+
+# 预训练模型地址, 本地win10默认只跑2步就评估保存模型
+if platform.system().lower() == 'windows':
+    # pretrained_model_dir = "D:/pretrain_models/pytorch"
+    pretrained_model_dir = "E:/DATA/bert-model/00_pytorch"
+    evaluate_steps = 32  # 评估步数
+    save_steps = 32  # 存储步数
+else:
+    pretrained_model_dir = "/pretrain_models/pytorch"
+    evaluate_steps = 320  # 评估步数
+    save_steps = 320  # 存储步数
+    ee = 0
 
 
 if __name__ == "__main__":
- 
+    # 训练-验证语料地址, 可以只输入训练地址
+    path_corpus = os.path.join(path_root, "pytorch_nlu", "corpus", "text_classification", "school")
+    path_train = os.path.join(path_corpus, "train.json")
+    path_dev = os.path.join(path_corpus, "dev.json")
     model_config["evaluate_steps"] = evaluate_steps  # 评估步数
     model_config["save_steps"] = save_steps  # 存储步数
     model_config["path_train"] = path_train  # 训练模语料, 必须
@@ -137,21 +151,45 @@ if __name__ == "__main__":
     model_config["path_tet"] = None          # 测试语料, 可为None
     # 损失函数类型,
     # multi-class:  可选 None(BCE), BCE, BCE_LOGITS, MSE, FOCAL_LOSS, DICE_LOSS, LABEL_SMOOTH
-    # multi-label:  SOFT_MARGIN_LOSS, PRIOR_MARGIN_LOSS, FOCAL_LOSS, CIRCLE_LOSS, DICE_LOSS等
-    model_config["path_tet"] = "FOCAL_LOSS"
+    # multi-label:  SOFT_MARGIN_LOSS, PRIOR_MARGIN_LOSS, FOCAL_LOSS, CIRCLE_LOSS, DICE_LOSS, MIX_focal_prior, DB_LOSS, CB_LOSS等
+    model_config["loss_type"] = "SOFT_MARGIN_LOSS"
     os.environ["CUDA_VISIBLE_DEVICES"] = str(model_config["CUDA_VISIBLE_DEVICES"])
 
-    model_config["pretrained_model_name_or_path"] = pretrained_model_name_or_path
+    # 预训练模型适配的class
+    model_type = ["BERT", "ERNIE", "BERT_WWM", "ALBERT", "ROBERTA", "XLNET", "ELECTRA"]
+    pretrained_model_name_or_path = {
+        "BERT_WWM": pretrained_model_dir + "/chinese_wwm_pytorch",
+        "ROBERTA": pretrained_model_dir + "/chinese_roberta_wwm_ext_pytorch",
+        "ALBERT": pretrained_model_dir + "/albert_base_v1",
+        "XLNET": pretrained_model_dir + "/chinese_xlnet_mid_pytorch",
+        "ERNIE": pretrained_model_dir + "/ERNIE_stable-1.0.1-pytorch",
+        # "ERNIE": pretrained_model_dir + "/ernie-tiny",  # 小模型
+        "BERT": pretrained_model_dir + "/bert-base-chinese",
+    }
+    idx = 0  # 选择的预训练模型类型---model_type, 0为BERT,
+    model_config["pretrained_model_name_or_path"] = pretrained_model_name_or_path[model_type[idx]]
+    # model_config["model_save_path"] = "../output/text_classification/model_{}".format(model_type[idx] + "_" + str(get_current_time()))
     model_config["model_save_path"] = "../output/text_classification/model_{}".format(model_type[idx])
-    model_config["model_type"] = "BERT"
+    model_config["model_type"] = model_type[idx]
     # main
     lc = TextClassification(model_config)
     lc.process()
     lc.train()
 
+
+# shell
+# nohup python  tcRun.py > tc.log 2>&1 &
+# tail -n 1000  -f tc.log
+# |myz|
 ```
 ## 序列标注(SL), sequence-labeling
 ```bash
+ !/usr/bin/python
+# -*- coding: utf-8 -*-
+# @time    : 2021/2/23 21:34
+# @author  : Mo
+# @function: 序列标注, 命名实体识别, CRF, 条件随机场
+
 
 # 适配linux
 import platform
@@ -164,24 +202,40 @@ sys.path.append(path_sys)
 print(path_root)
 print(path_sys)
 # 分类下的引入, pytorch_textclassification
-from tcConfig import model_config
-os.environ["CUDA_VISIBLE_DEVICES"] = model_config.get("CUDA_VISIBLE_DEVICES", "0")
 from slTools import get_current_time
 from slRun import SequenceLabeling
 from slConfig import model_config
 
-evaluate_steps = 320  # 评估步数
-save_steps = 320  # 存储步数
-# pytorch预训练模型目录, 必填
-pretrained_model_name_or_path = "bert-base-chinese"
-# 训练-验证语料地址, 可以只输入训练地址
-path_corpus = os.path.join(path_root, "corpus", "sequence_labeling", "ner_china_people_daily_1998_conll")
-path_train = os.path.join(path_corpus, "train.conll")
-path_dev = os.path.join(path_corpus, "dev.conll")
+
+# 预训练模型目录, 本地win10默认只跑2步就评估保存模型
+if platform.system().lower() == 'windows':
+    pretrained_model_dir = "D:/pretrain_models/pytorch"
+    evaluate_steps = 2  # 评估步数
+    save_steps = 2  # 存储步数
+else:
+    pretrained_model_dir = "/pretrain_models/pytorch"
+    evaluate_steps = 320  # 评估步数
+    save_steps = 320  # 存储步数
+    ee = 0
+
+# 预训练模型适配的class
+model_type = ["BERT", "ERNIE", "BERT_WWM", "ALBERT", "ROBERTA", "XLNET", "ELECTRA"]
+pretrained_model_name_or_path = {
+    "BERT_WWM": pretrained_model_dir + "/chinese_wwm_pytorch",
+    "ROBERTA": pretrained_model_dir + "/chinese_roberta_wwm_ext_pytorch",
+    "ALBERT": pretrained_model_dir + "/albert_base_v1",
+    "XLNET": pretrained_model_dir + "/chinese_xlnet_mid_pytorch",
+    "ERNIE": pretrained_model_dir + "/ERNIE_stable-1.0.1-pytorch",
+    # "ERNIE": pretrained_model_dir + "/ernie-tiny",  # 小模型
+    "BERT": pretrained_model_dir + "/bert-base-chinese",
+}
 
 
 if __name__ == "__main__":
- 
+    # 训练-验证语料地址, 可以只输入训练地址
+    path_corpus = os.path.join(path_root, "pytorch_nlu", "corpus", "sequence_labeling", "ner_china_people_daily_1998_conll")
+    path_train = os.path.join(path_corpus, "train.conll")
+    path_dev = os.path.join(path_corpus, "dev.conll")
     model_config["evaluate_steps"] = evaluate_steps  # 评估步数
     model_config["save_steps"] = save_steps  # 存储步数
     model_config["path_train"] = path_train  # 训练模语料, 必须
@@ -192,11 +246,14 @@ if __name__ == "__main__":
     model_config["corpus_type"] = "DATA-CONLL"# 语料数据格式, "DATA-CONLL", "DATA-SPAN"
     model_config["task_type"] = "SL-CRF"     # 任务类型, "SL-SOFTMAX", "SL-CRF", "SL-SPAN"
 
-    model_config["dense_lr"] = 1e-3  # 最后一层的学习率, CRF层学习率/全连接层学习率, 1e-5, 1e-4, 1e-3
+    model_config["dense_lr"] = 1e-5  # 最后一层的学习率, CRF层学习率/全连接层学习率, 1e-5, 1e-4, 1e-3
     model_config["lr"] = 1e-5        # 学习率, 1e-5, 2e-5, 5e-5, 8e-5, 1e-4, 4e-4
     model_config["max_len"] = 156    # 最大文本长度, None和-1则为自动获取覆盖0.95数据的文本长度, 0则取训练语料的最大长度, 具体的数值就是强制padding到max_len
 
-    model_config["pretrained_model_name_or_path"] = pretrained_model_name_or_path
+    idx = 0  # 选择的预训练模型类型---model_type, 0为BERT,
+    model_config["pretrained_model_name_or_path"] = pretrained_model_name_or_path[model_type[idx]]
+
+    # model_config["model_save_path"] = "../output/sequence_labeling/model_{}".format(model_type[idx] + "_" + str(get_current_time()))
     model_config["model_save_path"] = "../output/sequence_labeling/model_{}".format(model_type[idx])
     model_config["model_type"] = model_type[idx]
     # main
@@ -204,8 +261,96 @@ if __name__ == "__main__":
     lc.process()
     lc.train()
 
-```
 
+# shell
+# nohup python  slRun.py > sl.log 2>&1 &
+# tail -n 1000  -f sl.log
+
+```
+## 文本摘要(TS), Text-Summary
+```bash
+# !/usr/bin/python
+# -*- coding: utf-8 -*-
+# @time    : 2021/2/23 21:34
+# @author  : Mo
+# @function: 文本摘要, text-summary
+
+
+# 适配linux
+import platform
+import json
+import sys
+import os
+path_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
+path_sys = os.path.join(path_root, "pytorch_nlu", "pytorch_textsummary")
+sys.path.append(path_sys)
+print(path_root)
+print(path_sys)
+
+from tsTools import get_current_time
+from tsConfig import model_config
+from tsRun import TextSummary
+
+
+# 预训练模型地址, 本地win10默认只跑2步就评估保存模型
+if platform.system().lower() == 'windows':
+    # pretrained_model_dir = "D:/pretrain_models/pytorch"
+    pretrained_model_dir = "E:/DATA/bert-model/00_pytorch"
+    evaluate_steps = 32  # 评估步数
+    save_steps = 32  # 存储步数
+else:
+    pretrained_model_dir = "/pretrain_models/pytorch"
+    evaluate_steps = 320  # 评估步数
+    save_steps = 320  # 存储步数
+    ee = 0
+
+
+if __name__ == "__main__":
+
+    # 训练-验证语料地址, 可以只输入训练地址
+    path_corpus = os.path.join(path_root, "pytorch_nlu", "corpus", "text_summary", "maths_toy")
+    path_train = os.path.join(path_corpus, "train.json")
+    path_dev = os.path.join(path_corpus, "dev.json")
+
+    model_config["evaluate_steps"] = evaluate_steps  # 评估步数
+    model_config["save_steps"] = save_steps  # 存储步数
+    model_config["path_train"] = path_train
+    model_config["path_dev"] = path_dev
+    model_config["lr"] = 1e-5  # 测试语料, 可为None
+    model_config["max_len"] = 256  # 测试语料, 可为None
+    model_config["batch_size"] = 32  # 测试语料, 可为None
+    model_config["loss_type"] = "SOFT_MARGIN_LOSS"  # 测试语料, 可为None
+    model_config["is_dropout"] = True  #
+    model_config["is_adv"] = False  # 测试语料, 可为None
+
+
+    # 预训练模型适配的class
+    model_type = ["BERT", "ERNIE", "BERT_WWM", "ALBERT", "ROBERTA", "XLNET", "ELECTRA"]
+    pretrained_model_name_or_path = {
+        "BERT_WWM": pretrained_model_dir + "/chinese_wwm_pytorch",
+        "ROBERTA": pretrained_model_dir + "/chinese_roberta_wwm_ext_pytorch",
+        "ALBERT": pretrained_model_dir + "/albert_base_v1",
+        "XLNET": pretrained_model_dir + "/chinese_xlnet_mid_pytorch",
+        # "ERNIE": pretrained_model_dir + "/ERNIE_stable-1.0.1-pytorch",
+        "ERNIE": pretrained_model_dir + "/ernie-tiny",
+        "BERT": pretrained_model_dir + "/bert-base-chinese",
+        # "BERT": pretrained_model_dir + "/mengzi-bert-base/",
+    }
+    idx = 0  # 选择的预训练模型类型---model_type
+    model_config["pretrained_model_name_or_path"] = pretrained_model_name_or_path[model_type[idx]]
+    model_config["model_save_path"] = "../output/text_summary/model_{}".format(model_type[idx])
+    model_config["model_type"] = model_type[idx]
+    # main
+    lc = TextSummary(model_config)
+    lc.process()
+    lc.train()
+
+
+# shell
+# nohup python  tcRun.py > tc.log 2>&1 &
+# tail -n 1000  -f tc.log
+# |myz|
+```
 
 # paper
 ## 文本分类(TC, text-classification)
@@ -247,6 +392,9 @@ if __name__ == "__main__":
 * Lexicon:        [Simple-Lexicon：Simplify the Usage of Lexicon in Chinese NER](https://arxiv.org/pdf/1908.05969.pdf)
 * FLAT:           [FLAT: Chinese NER Using Flat-Lattice Transformer](https://arxiv.org/pdf/2004.11795.pdf)
 * MRC:            [A Unified MRC Framework for Named Entity Recognition](https://arxiv.org/abs/1910.11476v2)
+* 
+## 文本摘要(TS, Text-Summary)
+* BertSum:   [Fine-tune BERT for Extractive Summarization](https://arxiv.org/pdf/1903.10318.pdf)
 
 
 # 参考
@@ -268,6 +416,8 @@ This library is inspired by and references following frameworks and papers.
 * CRF: [pytorch-crf](https://github.com/kmkurn/pytorch-crf)
 * scikit-learn: [https://github.com/scikit-learn/scikit-learn](https://github.com/scikit-learn/scikit-learn)
 * tqdm: [https://github.com/tqdm/tqdm](https://github.com/tqdm/tqdm)
+* GPT2-NewsTitle:   [https://github.com/liucongg/GPT2-NewsTitle](https://github.com/liucongg/GPT2-NewsTitle)
+* BertSum: [https://github.com/nlpyang/BertSum](https://github.com/nlpyang/BertSum)
 
 # Reference
 For citing this work, you can refer to the present GitHub project. For example, with BibTeX:
@@ -280,5 +430,277 @@ For citing this work, you can refer to the present GitHub project. For example, 
 
 ```
 
-*希望对你有所帮助!
+
+# 实验
+## corpus==[unknow-data](https://github.com/FBI1314/textClassification/tree/master/multilabel_text_classfication/data), pretrain-model==ernie-tiny, batch=32, lr=5e-5, epoch=21
+
+### 总结
+#### micro-微平均
+```
+              precision    recall  f1-score   support
+
+   micro_avg     0.7920    0.7189    0.7537       466    MARGIN_LOSS
+   micro_avg     0.6706    0.8519    0.7505       466    PRIOR-MARGIN_LOSS
+   micro_avg     0.8258    0.6309    0.7153       466    FOCAL_LOSS【0.5, 2】
+   micro_avg     0.7890    0.7382    0.7627       466    CIRCLE_LOSS
+   micro_avg     0.7612    0.7661    0.7636       466    DICE_LOSS【直接学习F1?】
+   micro_avg     0.8062    0.7232    0.7624       466    BCE
+   micro_avg     0.7825    0.7103    0.7447       466    BCE-Logits
+   micro_avg     0.7899    0.7017    0.7432       466    BCE-Smooth
+   micro_avg     0.7235    0.8197    0.7686       466    (FOCAL_LOSS【0.5, 2】 + PRIOR-MARGIN_LOSS) / 2
+```
+
+#### macro-宏平均
+```
+              precision    recall  f1-score   support
+
+   macro_avg     0.6198    0.5338    0.5641       466    MARGIN_LOSS
+   macro_avg     0.5103    0.7200    0.5793       466    PRIOR-MARGIN_LOSS
+   macro_avg     0.7655    0.4973    0.5721       466    FOCAL_LOSS【0.5, 2】
+   macro_avg     0.6275    0.5235    0.5627       466    CIRCLE_LOSS
+   macro_avg     0.4287    0.3918    0.4025       466    DICE_LOSS【直接学习F1?】
+   macro_avg     0.6978    0.5158    0.5828       466    BCE
+   macro_avg     0.6046    0.5123    0.5433       466    BCE-Logits
+   macro_avg     0.6963    0.5012    0.5721       466    BCE-Smooth
+   macro_avg     0.6033    0.6809    0.6369       466    (FOCAL_LOSS【0.5, 2】 + PRIOR-MARGIN_LOSS) / 2
+
+```
+   
+micro_avg     0.7235    0.8197    0.7686       466    
+macro_avg     0.6033    0.6809    0.6369       466    
+
+
+### 1. batch=32, loss=MARGIN_LOSS, lr=5e-5, epoch=21,        【精确率高些】
+```
+              precision    recall  f1-score   support
+
+           3     0.8102    0.7919    0.8009       221
+           2     0.8030    0.8030    0.8030       132
+           1     0.7333    0.4925    0.5893        67
+           6     0.7143    0.5000    0.5882        10
+           5     0.7778    0.4828    0.5957        29
+           0     0.0000    0.0000    0.0000         4
+           4     0.5000    0.6667    0.5714         3
+
+   micro_avg     0.7920    0.7189    0.7537       466
+   macro_avg     0.6198    0.5338    0.5641       466
+weighted_avg     0.7841    0.7189    0.7454       466
+```
+
+### 2. batch=32, loss=PRIOR-MARGIN_LOSS, lr=5e-5, epoch=21,  【召回率高些】
+```
+              precision    recall  f1-score   support
+
+           3     0.7279    0.8959    0.8032       221
+           2     0.7039    0.9545    0.8103       132
+           1     0.5897    0.6866    0.6345        67
+           6     0.3333    0.5000    0.4000        10
+           5     0.6296    0.5862    0.6071        29
+           0     0.1875    0.7500    0.3000         4
+           4     0.4000    0.6667    0.5000         3
+
+   micro_avg     0.6706    0.8519    0.7505       466
+   macro_avg     0.5103    0.7200    0.5793       466
+weighted_avg     0.6799    0.8519    0.7538       466
+```
+
+### 3. batch=32, loss=FOCAL_LOSS【(0.5, 2)】, lr=5e-5, epoch=21, 【精确率超级高, 0.25效果会变差】
+```
+              precision    recall  f1-score   support
+
+           3     0.8482    0.7330    0.7864       221
+           2     0.8349    0.6894    0.7552       132
+           1     0.7586    0.3284    0.4583        67
+           6     0.6667    0.4000    0.5000        10
+           5     0.7500    0.4138    0.5333        29
+           0     1.0000    0.2500    0.4000         4
+           4     0.5000    0.6667    0.5714         3
+
+   micro_avg     0.8258    0.6309    0.7153       466
+   macro_avg     0.7655    0.4973    0.5721       466
+weighted_avg     0.8206    0.6309    0.7038       466
+```
+
+### 4. batch=32, loss=CIRCLE_LOSS【, lr=5e-5, epoch=21, 【效果很好, 精确率召回率相对比较均衡】
+```
+              precision    recall  f1-score   support
+
+           3     0.8125    0.8235    0.8180       221
+           2     0.7914    0.8333    0.8118       132
+           1     0.7333    0.4925    0.5893        67
+           6     0.6667    0.4000    0.5000        10
+           5     0.7222    0.4483    0.5532        29
+           0     0.0000    0.0000    0.0000         4
+           4     0.6667    0.6667    0.6667         3
+
+   micro_avg     0.7890    0.7382    0.7627       466
+   macro_avg     0.6275    0.5235    0.5627       466
+weighted_avg     0.7785    0.7382    0.7521       466
+```
+
+### 5. batch=32, loss=DICE_LOSS, lr=5e-5, epoch=21, 【F1指标比较高, 少样本数据学不到, 不稳定】
+```
+              precision    recall  f1-score   support
+
+           3     0.7714    0.8552    0.8112       221
+           2     0.7727    0.9015    0.8322       132
+           1     0.7347    0.5373    0.6207        67
+           6     0.0000    0.0000    0.0000        10
+           5     0.7222    0.4483    0.5532        29
+           0     0.0000    0.0000    0.0000         4
+           4     0.0000    0.0000    0.0000         3
+
+   micro_avg     0.7612    0.7661    0.7636       466
+   macro_avg     0.4287    0.3918    0.4025       466
+weighted_avg     0.7353    0.7661    0.7441       466
+```
+
+### 6. batch=32, loss=BCE, lr=5e-5, epoch=21,        【普通的居然意外的好呢】
+```
+              precision    recall  f1-score   support
+
+           3     0.8136    0.8100    0.8118       221
+           2     0.8029    0.8333    0.8178       132
+           1     0.8235    0.4179    0.5545        67
+           6     0.6667    0.4000    0.5000        10
+           5     0.7778    0.4828    0.5957        29
+           0     0.0000    0.0000    0.0000         4
+           4     1.0000    0.6667    0.8000         3
+
+   micro_avg     0.8062    0.7232    0.7624       466
+   macro_avg     0.6978    0.5158    0.5828       466
+weighted_avg     0.8009    0.7232    0.7493       466
+```
+
+### 7. batch=32, loss=BCE_LOGITS, lr=5e-5, epoch=21, 【torch.nn.BCEWithLogitsLoss】
+```
+
+              precision    recall  f1-score   support
+
+           3     0.7973    0.8009    0.7991       221
+           2     0.8000    0.7879    0.7939       132
+           1     0.7317    0.4478    0.5556        67
+           6     0.6667    0.4000    0.5000        10
+           5     0.7368    0.4828    0.5833        29
+           0     0.0000    0.0000    0.0000         4
+           4     0.5000    0.6667    0.5714         3
+
+   micro_avg     0.7825    0.7103    0.7447       466
+   macro_avg     0.6046    0.5123    0.5433       466
+weighted_avg     0.7733    0.7103    0.7344       466
+```
+
+### 8. batch=32, loss=LABEL_SMOOTH, lr=5e-5, epoch=21, 【BCE-Label-smooth】
+```
+              precision    recall  f1-score   support
+
+           3     0.7945    0.7873    0.7909       221
+           2     0.8120    0.8182    0.8151       132
+           1     0.7027    0.3881    0.5000        67
+           6     0.8000    0.4000    0.5333        10
+           5     0.7647    0.4483    0.5652        29
+           0     0.0000    0.0000    0.0000         4
+           4     1.0000    0.6667    0.8000         3
+
+   micro_avg     0.7899    0.7017    0.7432       466
+   macro_avg     0.6963    0.5012    0.5721       466
+weighted_avg     0.7790    0.7017    0.7296       466
+```
+
+### 9. batch=32, loss=FOCAL_LOSS + PRIOR-MARGIN_LOSS, lr=5e-5, epoch=21, 【这两个Loss混合，宏平均(macro-avg)效果居然意外的好呢！】
+```
+           【1/2】
+              precision    recall  f1-score   support
+
+           3     0.7640    0.8643    0.8110       221
+           2     0.7205    0.8788    0.7918       132
+           1     0.6620    0.7015    0.6812        67
+           6     0.4167    0.5000    0.4545        10
+           5     0.7600    0.6552    0.7037        29
+           0     0.4000    0.5000    0.4444         4
+           4     0.5000    0.6667    0.5714         3
+
+   micro_avg     0.7235    0.8197    0.7686       466
+   macro_avg     0.6033    0.6809    0.6369       466
+weighted_avg     0.7245    0.8197    0.7679       466
+           
+           【调和平均数】
+              precision    recall  f1-score   support
+
+           3     0.8474    0.7285    0.7835       221
+           2     0.8304    0.7045    0.7623       132
+           1     0.8182    0.4030    0.5400        67
+           6     0.8000    0.4000    0.5333        10
+           5     0.7143    0.3448    0.4651        29
+           0     1.0000    0.2500    0.4000         4
+           4     0.6667    0.6667    0.6667         3
+
+   micro_avg     0.8324    0.6395    0.7233       466
+   macro_avg     0.8110    0.4996    0.5930       466
+weighted_avg     0.8292    0.6395    0.7132       466
+
+           【1/3 + 2/3-focal】
+              precision    recall  f1-score   support
+
+           3     0.7890    0.8462    0.8166       221
+           2     0.7516    0.8939    0.8166       132
+           1     0.6935    0.6418    0.6667        67
+           6     0.3636    0.4000    0.3810        10
+           5     0.6538    0.5862    0.6182        29
+           0     0.4000    0.5000    0.4444         4
+           4     0.5000    0.6667    0.5714         3
+
+   micro_avg     0.7430    0.8004    0.7707       466
+   macro_avg     0.5931    0.6478    0.6164       466
+weighted_avg     0.7420    0.8004    0.7686       466
+
+           【1/4-prior + 3/4-focal】
+              precision    recall  f1-score   support
+
+           3     0.7956    0.8100    0.8027       221
+           2     0.7712    0.8939    0.8281       132
+           1     0.6981    0.5522    0.6167        67
+           6     0.6667    0.4000    0.5000        10
+           5     0.7143    0.5172    0.6000        29
+           0     0.3333    0.2500    0.2857         4
+           4     0.5000    0.6667    0.5714         3
+
+   micro_avg     0.7656    0.7639    0.7648       466
+   macro_avg     0.6399    0.5843    0.6007       466
+weighted_avg     0.7610    0.7639    0.7581       466
+
+           【4/9-prior + 5/9-focal】
+              precision    recall  f1-score   support
+
+           3     0.7819    0.8597    0.8190       221
+           2     0.7578    0.9242    0.8328       132
+           1     0.6567    0.6567    0.6567        67
+           6     0.5000    0.5000    0.5000        10
+           5     0.6250    0.5172    0.5660        29
+           0     0.2857    0.5000    0.3636         4
+           4     0.5000    0.6667    0.5714         3
+
+   micro_avg     0.7364    0.8155    0.7739       466
+   macro_avg     0.5867    0.6607    0.6156       466
+weighted_avg     0.7352    0.8155    0.7715       466
+```
+
+
+### 10. pretrain-model==bert, batch=32, loss=FOCAL_LOSS + PRIOR-MARGIN_LOSS, lr=3e-5, epoch=21, 【这两个Loss混合，宏平均(micro-avg)效果居然意外的好呢！】
+```
+              precision    recall  f1-score   support
+
+           3     0.7787    0.8597    0.8172       221
+           2     0.7580    0.9015    0.8235       132
+           1     0.7414    0.6418    0.6880        67
+           6     0.7143    0.5000    0.5882        10
+           5     0.6400    0.5517    0.5926        29
+           0     0.0000    0.0000    0.0000         4
+           4     0.5000    0.6667    0.5714         3
+
+   micro_avg     0.7560    0.8047    0.7796       466
+   macro_avg     0.5903    0.5888    0.5830       466
+weighted_avg     0.7490    0.8047    0.7729       466
+```
+
 

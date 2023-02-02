@@ -47,7 +47,7 @@ pretrained_model_name_or_path = {
 
 if __name__ == "__main__":
     # 训练-验证语料地址, 可以只输入训练地址
-    path_corpus = os.path.join(path_root, "corpus", "sequence_labeling", "ner_china_people_daily_1998_conll")
+    path_corpus = os.path.join(path_root, "pytorch_nlu", "corpus", "sequence_labeling", "ner_china_people_daily_1998_conll")
     path_train = os.path.join(path_corpus, "train.conll")
     path_dev = os.path.join(path_corpus, "dev.conll")
     model_config["evaluate_steps"] = evaluate_steps  # 评估步数

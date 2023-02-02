@@ -39,7 +39,7 @@ class PriorMultiLabelSoftMarginLoss(nn.Module):
         args:
             prior: List<float>, prior of label, 先验知识.  eg. [0.6, 0.2, 0.1, 0.1]
             num_labels: int, num of labels, 类别数.  eg. 10
-            reduction: str, Specifies the reduction to apply to the output, 输出形式. 
+            reduction: str, Specifies the reduction to apply to the output, 输出形式.
                             eg.``'none'`` | ``'mean'`` | ``'sum'``. ``'none'``
             eps: float, Minimum of maths, 极小值.  eg. 1e-9
             tau: float, weight of prior in loss, 先验知识的权重, eg. ``1.0``
@@ -138,7 +138,7 @@ class LabelSmoothingCrossEntropyV1(nn.Module):
         urls: [pytorch | labelSmooth](https://zhuanlan.zhihu.com/p/265704145)
         args:
             ignore_index: (int, optional): Specifies a target value that is ignored and does not contribute to the input gradient. Default: -100
-            reduction: str, Specifies the reduction to apply to the output, 输出形式. 
+            reduction: str, Specifies the reduction to apply to the output, 输出形式.
                             eg.``'none'`` | ``'mean'`` | ``'sum'``. ``'none'``
             eps: float, Minimum of maths, 极小值.  eg. 0.1
         returns:
@@ -170,7 +170,7 @@ class LabelSmoothingCrossEntropy(nn.Module):
         对logits进行smoothing, 即log_softmax后进行操作
         args:
             ignore_index: (int, optional): Specifies a target value that is ignored and does not contribute to the input gradient. Default: -100
-            reduction: str, Specifies the reduction to apply to the output, 输出形式. 
+            reduction: str, Specifies the reduction to apply to the output, 输出形式.
                             eg.``'none'`` | ``'mean'`` | ``'sum'``. ``'none'``
             eps: float, Minimum of maths, 极小值.  eg. 0.1
         returns:
@@ -205,7 +205,7 @@ class MultiLabelCircleLoss(nn.Module):
           - 所有同类相似度都比所有非同类相似度更大。
         urls: [将“softmax+交叉熵”推广到多标签分类问题](https://spaces.ac.cn/archives/7359)
         args:
-            reduction: str, Specifies the reduction to apply to the output, 输出形式. 
+            reduction: str, Specifies the reduction to apply to the output, 输出形式.
                             eg.``'none'`` | ``'mean'`` | ``'sum'``. ``'none'``
             inf: float, Minimum of maths, 无穷大.  eg. 1e12
         returns:
@@ -269,7 +269,7 @@ class DiceLossV1(nn.Module):
         paper: Dice Loss for Data-imbalanced NLP Tasks
         url: https://arxiv.org/pdf/1911.02855.pdf
         args:
-            reduction: str, Specifies the reduction to apply to the output, 输出形式. 
+            reduction: str, Specifies the reduction to apply to the output, 输出形式.
                             eg.``'none'`` | ``'mean'`` | ``'sum'``. ``'none'``
             epsilon: float, Minimum of maths, 无穷小.  eg. 1e-9
         returns:
@@ -302,7 +302,7 @@ class DiceLoss(nn.Module):
         paper: Dice Loss for Data-imbalanced NLP Tasks
         url: https://arxiv.org/pdf/1911.02855.pdf
         args:
-            reduction: str, Specifies the reduction to apply to the output, 输出形式. 
+            reduction: str, Specifies the reduction to apply to the output, 输出形式.
                             eg.``'none'`` | ``'mean'`` | ``'sum'``. ``'none'``
             epsilon: float, Minimum of maths, 无穷小.  eg. 1e-9
         returns:

@@ -166,7 +166,7 @@ For citing this work, you can refer to the present GitHub project. For example, 
 
 
 # 实验
-## corpus==[unknow-data](https://github.com/FBI1314/textClassification/tree/master/multilabel_text_classfication/data), pretrain-model==ernie-tiny, batch=32, lr=1e-5, epoch=21
+## corpus==[unknow-data](https://github.com/FBI1314/textClassification/tree/master/multilabel_text_classfication/data), pretrain-model==ernie-tiny, batch=32, lr=5e-5, epoch=21
 
 ### 总结
 #### micro-微平均
@@ -180,8 +180,8 @@ For citing this work, you can refer to the present GitHub project. For example, 
    micro_avg     0.7612    0.7661    0.7636       466    DICE_LOSS【直接学习F1?】
    micro_avg     0.8062    0.7232    0.7624       466    BCE
    micro_avg     0.7825    0.7103    0.7447       466    BCE-Logits
-   micro_avg     0.7899    0.7017    0.7432       466    BCE-smooth
-   micro_avg     0.7235    0.8197    0.7686       466    FOCAL_LOSS【0.5, 2】 + PRIOR-MARGIN_LOSS / 2
+   micro_avg     0.7899    0.7017    0.7432       466    BCE-Smooth
+   micro_avg     0.7235    0.8197    0.7686       466    (FOCAL_LOSS【0.5, 2】 + PRIOR-MARGIN_LOSS) / 2
 ```
 
 #### macro-宏平均
@@ -195,12 +195,16 @@ For citing this work, you can refer to the present GitHub project. For example, 
    macro_avg     0.4287    0.3918    0.4025       466    DICE_LOSS【直接学习F1?】
    macro_avg     0.6978    0.5158    0.5828       466    BCE
    macro_avg     0.6046    0.5123    0.5433       466    BCE-Logits
-   macro_avg     0.6963    0.5012    0.5721       466    BCE-smooth
-   macro_avg     0.6033    0.6809    0.6369       466    FOCAL_LOSS【0.5, 2】 + PRIOR-MARGIN_LOSS / 2
+   macro_avg     0.6963    0.5012    0.5721       466    BCE-Smooth
+   macro_avg     0.6033    0.6809    0.6369       466    (FOCAL_LOSS【0.5, 2】 + PRIOR-MARGIN_LOSS) / 2
 
 ```
    
-### 1. batch=32, loss=MARGIN_LOSS, lr=1e-5, epoch=21,        【精确率高些】
+micro_avg     0.7235    0.8197    0.7686       466    
+macro_avg     0.6033    0.6809    0.6369       466    
+
+
+### 1. batch=32, loss=MARGIN_LOSS, lr=5e-5, epoch=21,        【精确率高些】
 ```
               precision    recall  f1-score   support
 
@@ -217,7 +221,7 @@ For citing this work, you can refer to the present GitHub project. For example, 
 weighted_avg     0.7841    0.7189    0.7454       466
 ```
 
-### 2. batch=32, loss=PRIOR-MARGIN_LOSS, lr=1e-5, epoch=21,  【召回率高些】
+### 2. batch=32, loss=PRIOR-MARGIN_LOSS, lr=5e-5, epoch=21,  【召回率高些】
 ```
               precision    recall  f1-score   support
 
@@ -234,7 +238,7 @@ weighted_avg     0.7841    0.7189    0.7454       466
 weighted_avg     0.6799    0.8519    0.7538       466
 ```
 
-### 3. batch=32, loss=FOCAL_LOSS【(0.5, 2)】, lr=1e-5, epoch=21, 【精确率超级高, 0.25效果会变差】
+### 3. batch=32, loss=FOCAL_LOSS【(0.5, 2)】, lr=5e-5, epoch=21, 【精确率超级高, 0.25效果会变差】
 ```
               precision    recall  f1-score   support
 
@@ -251,7 +255,7 @@ weighted_avg     0.6799    0.8519    0.7538       466
 weighted_avg     0.8206    0.6309    0.7038       466
 ```
 
-### 4. batch=32, loss=CIRCLE_LOSS【, lr=1e-5, epoch=21, 【效果很好, 精确率召回率相对比较均衡】
+### 4. batch=32, loss=CIRCLE_LOSS【, lr=5e-5, epoch=21, 【效果很好, 精确率召回率相对比较均衡】
 ```
               precision    recall  f1-score   support
 
@@ -268,7 +272,7 @@ weighted_avg     0.8206    0.6309    0.7038       466
 weighted_avg     0.7785    0.7382    0.7521       466
 ```
 
-### 5. batch=32, loss=DICE_LOSS, lr=1e-5, epoch=21, 【F1指标比较高, 少样本数据学不到, 不稳定】
+### 5. batch=32, loss=DICE_LOSS, lr=5e-5, epoch=21, 【F1指标比较高, 少样本数据学不到, 不稳定】
 ```
               precision    recall  f1-score   support
 
@@ -285,7 +289,7 @@ weighted_avg     0.7785    0.7382    0.7521       466
 weighted_avg     0.7353    0.7661    0.7441       466
 ```
 
-### 6. batch=32, loss=BCE, lr=1e-5, epoch=21,        【普通的居然意外的好呢】
+### 6. batch=32, loss=BCE, lr=5e-5, epoch=21,        【普通的居然意外的好呢】
 ```
               precision    recall  f1-score   support
 
@@ -302,7 +306,7 @@ weighted_avg     0.7353    0.7661    0.7441       466
 weighted_avg     0.8009    0.7232    0.7493       466
 ```
 
-### 7. batch=32, loss=BCE_LOGITS, lr=1e-5, epoch=21, 【torch.nn.BCEWithLogitsLoss】
+### 7. batch=32, loss=BCE_LOGITS, lr=5e-5, epoch=21, 【torch.nn.BCEWithLogitsLoss】
 ```
 
               precision    recall  f1-score   support
@@ -320,7 +324,7 @@ weighted_avg     0.8009    0.7232    0.7493       466
 weighted_avg     0.7733    0.7103    0.7344       466
 ```
 
-### 8. batch=32, loss=LABEL_SMOOTH, lr=1e-5, epoch=21, 【BCE-Label-smooth】
+### 8. batch=32, loss=LABEL_SMOOTH, lr=5e-5, epoch=21, 【BCE-Label-smooth】
 ```
               precision    recall  f1-score   support
 
@@ -337,7 +341,7 @@ weighted_avg     0.7733    0.7103    0.7344       466
 weighted_avg     0.7790    0.7017    0.7296       466
 ```
 
-### 9. batch=32, loss=FOCAL_LOSS + PRIOR-MARGIN_LOSS, lr=1e-5, epoch=21, 【这两个Loss混合，宏平均(macro-avg)效果居然意外的好呢！】
+### 9. batch=32, loss=FOCAL_LOSS + PRIOR-MARGIN_LOSS, lr=5e-5, epoch=21, 【这两个Loss混合，宏平均(macro-avg)效果居然意外的好呢！】
 ```
            【1/2】
               precision    recall  f1-score   support
@@ -414,6 +418,25 @@ weighted_avg     0.7610    0.7639    0.7581       466
    macro_avg     0.5867    0.6607    0.6156       466
 weighted_avg     0.7352    0.8155    0.7715       466
 ```
+
+
+### 10. pretrain-model==bert, batch=32, loss=FOCAL_LOSS + PRIOR-MARGIN_LOSS, lr=3e-5, epoch=21, 【这两个Loss混合，宏平均(micro-avg)效果居然意外的好呢！】
+```
+              precision    recall  f1-score   support
+
+           3     0.7787    0.8597    0.8172       221
+           2     0.7580    0.9015    0.8235       132
+           1     0.7414    0.6418    0.6880        67
+           6     0.7143    0.5000    0.5882        10
+           5     0.6400    0.5517    0.5926        29
+           0     0.0000    0.0000    0.0000         4
+           4     0.5000    0.6667    0.5714         3
+
+   micro_avg     0.7560    0.8047    0.7796       466
+   macro_avg     0.5903    0.5888    0.5830       466
+weighted_avg     0.7490    0.8047    0.7729       466
+```
+
 
 希望对你有所帮助!
 

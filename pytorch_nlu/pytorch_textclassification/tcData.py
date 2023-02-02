@@ -5,43 +5,49 @@
 # @function: deal corpus(data preprocess), label全部转成onehot的形式
 
 
-from tcConfig import PRETRAINED_MODEL_CLASSES
-from torch.utils.data import TensorDataset
-import torch
 import logging as logger
 from abc import ABC
 import json
+import os
+
+from torch.utils.data import TensorDataset
+import torch
+
+from tcConfig import PRETRAINED_MODEL_CLASSES
+from tcTqdm import tqdm
 
 
 class Corpus(ABC):
     def __init__(self, config, logger=logger):
         self.config = config
+        self.logger = logger
         self.ADDITIONAL_SPECIAL_TOKENS = self.config.ADDITIONAL_SPECIAL_TOKENS
         self.tokenizer = self.load_tokenizer(self.config)
-
         self.pad_token_id = self.tokenizer.pad_token_id
         self.cls_token_id = self.tokenizer.cls_token_id
         self.sep_token_id = self.tokenizer.sep_token_id
+        self.unk_token_id = self.tokenizer.unk_token_id
         self.pad_token = self.tokenizer.pad_token
         self.cls_token = self.tokenizer.cls_token
         self.sep_token = self.tokenizer.sep_token
+        self.unk_token = self.tokenizer.unk_token
+        self.max_len = self.config.max_len
         self.l2i, self.i2l = {}, {}
-        self.logger = logger
-        self.len_max = self.config.max_len
 
-    def read_corpus_from_json(self, path_json, encoding="utf-8", keys=["text", "label"]):
+    def read_corpus_from_json(self, path_json, encoding="utf-8", len_rate=1, keys=["text", "label"]):
         """
         从定制化的标准json文件中读取初始语料, read corpus from json
         config:
             path_json: str, path of corpus
             encoding: str, file encoding type, eg. "utf-8", "gbk"
+            len_rate: float, 0-1, eg. 0.5
             keys: list, selected key of json
         Returns:
             (xs, ys): tuple
         """
+        xs, ys, len_maxs = [], [], []
+        count = 0
         with open(path_json, "r", encoding=encoding) as fo:
-            xs, ys, len_maxs = [], [], []
-            count = 0
             for line in fo:
                 count += 1
                 # if count > 32:
@@ -54,8 +60,15 @@ class Corpus(ABC):
                 len_maxs.append(len(x))
                 xs.append((x, y))
                 ys.append(y)
+
             fo.close()
-            # 覆盖0.95的长度
+            xs.append((x, y))
+            ys.append(y)
+            # 没有验证集的情况
+            len_rel = int(count * len_rate) if 0<len_rate<1 else count
+            xs = xs[:len_rel+1]
+            ys = ys[:len_rel+1]
+            # 分析统计文本长度, 覆盖0.95的长度
             len_maxs.sort()
             len_max_100 = len_maxs[-1]
             len_max_95 = len_maxs[int(len(len_maxs) * 0.95)]
@@ -65,10 +78,10 @@ class Corpus(ABC):
             self.logger.info("len_max_95: {}".format(len_max_95))
             self.logger.info("len_max_90: {}".format(len_max_90))
             self.logger.info("len_max_50: {}".format(len_max_50))
-            if not self.config.max_len or self.config.max_len == -1:
-                self.len_max = len_max_95
-            elif self.config.max_len == 0:  # 即ax_len为0则是强制获取语料中的最大文本长度
-                self.len_max = max(len_maxs) + 2
+            if self.config.max_len == 0:  # 即ax_len为0则是强制获取语料中的最大文本长度
+                self.max_len = min(max(len_maxs) + 2, 512)
+            elif self.config.max_len is None or self.config.max_len == -1:
+                self.max_len = min(len_max_95 + 2, 512)
             return xs, ys
 
     def read_texts_from_json(self, texts, keys=["text", "label"]):
@@ -115,25 +128,39 @@ class Corpus(ABC):
         batch_label_ids = []
         len_label = len(label2idx)
         count = 0
-        for di in data_iter:
+        qbar = tqdm(data_iter, desc="data_preprocess") if self.config.is_train==True else data_iter
+        for di in qbar:
+        # for di in data_iter:
             count += 1
             x, y = di
             tokens = self.tokenizer.tokenize(x)
+            ### 超出长度则首尾截断
+            if len(tokens) > max_len:   ### token
+                mid_maxlen = int(max_len / 2) - 1
+                tokens = tokens[:mid_maxlen] + tokens[-mid_maxlen:]
+
             token_type_ids = [0] * max_len
             input_ids = self.tokenizer.convert_tokens_to_ids(tokens)
+            # cls_id_1 = self.tokenizer.convert_tokens_to_ids(["[unused2]"])
+            # cls_id_2 = self.tokenizer.convert_tokens_to_ids(["[unused3]"])
             #  padding
-            pad_len = max_len - len(input_ids) - 2
-            if max_len - len(input_ids) - 2 >= 0:
+            len_more = 2  # 4
+            pad_len = max_len - len(input_ids) - len_more
+            if max_len - len(input_ids) - len_more >= 0:
                 input_ids = [self.cls_token_id] + input_ids + [0]*pad_len + [self.sep_token_id]
+                # input_ids = cls_id_1 + cls_id_2 + [self.cls_token_id] + input_ids + [0] * pad_len + [self.sep_token_id]
                 attention_mask_ids = [1] * (max_len-pad_len-1) + [0] * (pad_len+1)
             else:
-                input_ids = [self.cls_token_id] + input_ids[:max_len-2] + [self.sep_token_id]
+                input_ids = [self.cls_token_id] + input_ids[:max_len-len_more] + [self.sep_token_id]
+                # input_ids = cls_id_1 + cls_id_2 + [self.cls_token_id] + input_ids[:max_len - len_more] + [self.sep_token_id]
                 attention_mask_ids = [1] * max_len
             #  label 全部转为 onehot
             label_ids = [0] * len_label
             for lab in y.split(label_sep):
-                if lab in label2idx:
+                if lab and lab in label2idx:
                     label_ids[label2idx[lab]] = 1
+            # if 1 not in label_ids:
+            #     ee = 0
             batch_attention_mask_ids.append(attention_mask_ids)
             batch_token_type_ids.append(token_type_ids)
             batch_input_ids.append(input_ids)
@@ -161,8 +188,8 @@ class Corpus(ABC):
         Returns:
             tokenizer: class
         """
-        class PretrainedTokenizer(PRETRAINED_MODEL_CLASSES[config.model_type][1]):
-            """ 避免自带的tokenize删除空白、或者是其他特殊字符的情况 """
+        class PretrainTokenizer(PRETRAINED_MODEL_CLASSES[config.model_type][1]):
+            """ 强制单个字token, 避免自带的tokenize删除空白、或者是其他特殊字符的情况 """
             def tokenize(self, text):
                 tokens = []
                 for t in text:
@@ -170,11 +197,18 @@ class Corpus(ABC):
                         t = t.lower()
                     if t in self.vocab:
                         tokens.append(t)
+                    # elif not t.replace(" ", "").strip():
+                    #     tokens.append("[unused1]")
                     else:
-                        tokens.append("[UNK]")
+                        tokens.append(self.unk_token)
                 return tokens
-
-        tokenizer = PretrainedTokenizer.from_pretrained(config.pretrained_model_name_or_path)
+        if config.tokenizer_type.upper() == "BASE":
+            tokenizer = PRETRAINED_MODEL_CLASSES[config.model_type][1].from_pretrained(config.pretrained_model_name_or_path)
+        else:
+            tokenizer = PretrainTokenizer.from_pretrained(config.pretrained_model_name_or_path)  # 改写了以后会报错
         tokenizer.add_special_tokens({"additional_special_tokens": self.ADDITIONAL_SPECIAL_TOKENS})
+        for ast in self.ADDITIONAL_SPECIAL_TOKENS:
+            if ast not in tokenizer.vocab:
+                tokenizer.vocab[ast] = len(tokenizer.vocab)
         return tokenizer
 

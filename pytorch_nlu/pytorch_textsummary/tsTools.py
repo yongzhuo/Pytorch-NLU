@@ -2,14 +2,13 @@
 # -*- coding: utf-8 -*-
 # @time    : 2020/11/17 21:35
 # @author  : Mo
-# @function: utils of Pytorch-Textclassification
+# @function: utils of Pytorch-TextSummary
 
 
 from logging.handlers import RotatingFileHandler
 from collections import Counter, OrderedDict
 from typing import Union, Dict, List, Any
 import logging
-import pickle
 import time
 import json
 import re
@@ -528,19 +527,6 @@ def txt_read(path: str, encoding: str = "utf-8") -> List[str]:
         logging.info(str(e))
     finally:
         return lines
-
-
-def save_pickle(data, path):
-    """ 存储 """
-    with open(path, "wb") as fp:
-        pickle.dump(data, fp, protocol=4)
-
-
-def load_pickle(path):
-    """ 加载 """
-    with open(path, "rb") as fp:
-        data = pickle.load(fp)
-    return data
 
 
 def get_current_time(time_form: str="%Y%m%d%H%M%S"):

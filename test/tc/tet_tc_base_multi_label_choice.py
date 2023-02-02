@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # @time    : 2021/2/23 21:34
 # @author  : Mo
-# @function: 使用对抗训练, is-adv
+# @function: choice, model_config可配置参数
 
 
 # 适配linux
@@ -44,12 +44,31 @@ if __name__ == "__main__":
     model_config["path_train"] = path_train  # 训练模语料, 必须
     model_config["path_dev"] = path_dev      # 验证语料, 可为None
     model_config["path_tet"] = None          # 测试语料, 可为None
-    model_config["is_adv"] = True            # 使用对抗训练, 即扰动embedding
-    # 损失函数类型,
-    # multi-class:  可选 None(BCE), BCE, BCE_LOGITS, MSE, FOCAL_LOSS, DICE_LOSS, LABEL_SMOOTH
-    # multi-label:  SOFT_MARGIN_LOSS, PRIOR_MARGIN_LOSS, FOCAL_LOSS, CIRCLE_LOSS, DICE_LOSS, MIX_focal_prior, DB_LOSS, CB_LOSS等
-    model_config["loss_type"] = "SOFT_MARGIN_LOSS"
-    # os.environ["CUDA_VISIBLE_DEVICES"] = str(model_config["CUDA_VISIBLE_DEVICES"])
+
+    ## 参数配置 choice
+    model_config["lr"] = 3e-5  # 5e-5, 1e-5 # 学习率
+    model_config["max_len"] = 128  # 最大文本长度, padding
+    model_config["batch_size"] = 64  # 批尺寸
+    model_config["warmup_steps"] = 1000  # 预热步数
+    model_config["is_active"] = False  # fc是否加激活函数
+    model_config["is_dropout"] = True  # 是否随机丢弃
+    model_config["is_adv"] = True  # 是否对抗训练
+    # model_config["len_rate"] = 0.01   # 参与训练数据的样本数比率(如win10下少量数据跑通)
+    model_config["epochs"] = 16  # 训练轮次 # 21  # 32
+
+    model_config["output_hidden_states"] = [0, 1, 2, 3]  # 输出多层 # [0, 1, 2, 3]  # [1, 2, 11, 12]  # [8, 9, 10, 11, 12]  # [0,1,  5,6,  11,12]  # [1, 3, 5]
+    model_config["loss_type"] = "PRIOR_MARGIN_LOSS"  # 损失函数
+    # model_config["loss_type"] = "FOCAL_LOSS"
+    # model_config["loss_type"] = "PRIOR_MARGIN_LOSS"
+    # model_config["loss_type"] = "MIX_focal_prior"
+    # model_config["loss_type"] = "MIX_prior_bce"
+    # model_config["loss_type"] = "MIX_focal_bce"
+    # model_config["loss_type"] = "BCE_MULTI"
+    # model_config["loss_type"] = "BCE_LOGITS"
+    # model_config["loss_type"] = "CIRCLE_LOSS"
+    # model_config["loss_type"] = "CB_LOSS"
+    # model_config["loss_type"] = "DB_LOSS"
+    model_config["label_sep"] = "|myz|"  # 多标签分类类别标签分隔符
 
     # 预训练模型适配的class
     model_type = ["BERT", "ERNIE", "BERT_WWM", "ALBERT", "ROBERTA", "XLNET", "ELECTRA"]
@@ -67,6 +86,8 @@ if __name__ == "__main__":
     # model_config["model_save_path"] = "../output/text_classification/model_{}".format(model_type[idx] + "_" + str(get_current_time()))
     model_config["model_save_path"] = "../output/text_classification/model_{}".format(model_type[idx])
     model_config["model_type"] = model_type[idx]
+    model_config["ADDITIONAL_SPECIAL_TOKENS"] = ["＋","－", "＝", "：", "．", "（", "）", "≈", "％",
+                                                 "∥", "＜", "＞", "⊙", "≌", "。"]  # 新增特殊字符
     # main
     lc = TextClassification(model_config)
     lc.process()
@@ -74,7 +95,7 @@ if __name__ == "__main__":
 
 
 # shell
-# nohup python  tcRun.py > tc.log 2>&1 &
-# tail -n 1000  -f tc.log
+# nohup python  tet_tc_base_multi_label_choice.py > tc.tet_tc_base_multi_label_choice.py.log 2>&1 &
+# tail -n 1000  -f tc.tet_tc_base_multi_label_choice.py.log
 # |myz|
 

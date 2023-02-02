@@ -12,6 +12,7 @@ import sys
 import os
 path_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
 path_sys = os.path.join(path_root, "pytorch_nlu", "pytorch_textclassification")
+sys.path.append(path_sys)
 print(path_root)
 # 分类下的引入, pytorch_textclassification
 from tcTools import get_current_time
@@ -21,9 +22,10 @@ from tcConfig import model_config
 
 # 预训练模型地址, 本地win10默认只跑2步就评估保存模型
 if platform.system().lower() == 'windows':
-    pretrained_model_dir = "D:/pretrain_models/pytorch"
-    evaluate_steps = 2  # 评估步数
-    save_steps = 2  # 存储步数
+    # pretrained_model_dir = "D:/pretrain_models/pytorch"
+    pretrained_model_dir = "E:/DATA/bert-model/00_pytorch"
+    evaluate_steps = 32  # 评估步数
+    save_steps = 32  # 存储步数
 else:
     pretrained_model_dir = "/pretrain_models/pytorch"
     evaluate_steps = 320  # 评估步数
@@ -33,7 +35,7 @@ else:
 
 if __name__ == "__main__":
     # 训练-验证语料地址, 可以只输入训练地址
-    path_corpus = os.path.join(path_root, "corpus", "text_classification", "tnews")
+    path_corpus = os.path.join(path_root, "pytorch_nlu", "corpus", "text_classification", "tnews")
     path_train = os.path.join(path_corpus, "train.json")
     path_dev = os.path.join(path_corpus, "dev.json")
     model_config["evaluate_steps"] = evaluate_steps  # 评估步数
@@ -41,8 +43,8 @@ if __name__ == "__main__":
     model_config["path_train"] = path_train  # 训练模语料, 必须
     model_config["path_dev"] = path_dev      # 验证语料, 可为None
     model_config["path_tet"] = None          # 测试语料, 可为None
-    # multi-class:  可选 None(BCE), BCE, BCE_LOGITS, MSE, FOCAL_LOSS, DICE_LOSS, LABEL_SMOOTH, MIX;
-    # multi-label:  SOFT_MARGIN_LOSS, PRIOR_MARGIN_LOSS, FOCAL_LOSS, CIRCLE_LOSS, DICE_LOSS, MIX等
+    # multi-class:  可选 None(BCE), BCE, BCE_LOGITS, MSE, FOCAL_LOSS, DICE_LOSS, LABEL_SMOOTH;
+    # multi-label:  SOFT_MARGIN_LOSS, PRIOR_MARGIN_LOSS, FOCAL_LOSS, CIRCLE_LOSS, DICE_LOSS, MIX_focal_prior, DB_LOSS, CB_LOSS等
     os.environ["CUDA_VISIBLE_DEVICES"] = str(model_config["CUDA_VISIBLE_DEVICES"])
 
     # 预训练模型适配的class

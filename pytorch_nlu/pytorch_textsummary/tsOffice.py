@@ -5,25 +5,24 @@
 # @function: office of transformers, 训练-主工作流
 
 
-from transformers import AdamW, get_linear_schedule_with_warmup
-from torch.utils.data import DataLoader, RandomSampler
-from tensorboardX import SummaryWriter
-import torch
-
-from tcLayer import PriorMultiLabelSoftMarginLoss, MultiLabelCircleLoss, LabelSmoothingCrossEntropy, ResampleLoss, FocalLoss, DiceLoss
-from tcTools import chinese_extract_extend, mertics_report, sigmoid, softmax
-from tcConfig import _TC_MULTI_CLASS, _TC_MULTI_LABEL
-from tcGraph import TCGraph as Graph
-from tcTqdm import tqdm, trange
-from tcAdversarial import FGM
-
 import logging as logger
-import numpy as np
 import traceback
 import random
 import codecs
+import copy
 import json
 import os
+
+from transformers import AdamW, get_linear_schedule_with_warmup
+from tensorboardX import SummaryWriter
+import numpy as np
+import torch
+
+from tsLayer import PriorMultiLabelSoftMarginLoss, MultiLabelCircleLoss, LabelSmoothingCrossEntropy, ResampleLoss, FocalLoss, DiceLoss
+from tsTools import chinese_extract_extend, mertics_report, sigmoid, softmax
+from tsGraph import TSGraph as Graph
+from tsTqdm import tqdm, trange
+from tsAdversarial import FGM
 
 
 class Office:
@@ -39,7 +38,6 @@ class Office:
             None
         """
         self.logger = logger
-        self.logger.info(config)
         self.config = config
         self.loss_type = self.config.loss_type if self.config.loss_type else "BCE"
         self.device = "cuda:{}".format(config.CUDA_VISIBLE_DEVICES) if (torch.cuda.is_available() \
@@ -83,57 +81,61 @@ class Office:
         else:
             raise Exception("mode_type must be 'dev' or 'tet'")
 
-        data_loader = DataLoader(corpus, batch_size=self.config.batch_size, pin_memory=True)
-        ys_pred_id, ys_true_id = None, None
+        ys_pred_id_list, ys_true_id_list = None, None
+        ys_pred_id, ys_true_id = [], []
+        eval_true, eval_total = 0, 0
         eval_loss = 0.0
         eval_steps = 0
         self.model.eval()  # 验证
-        for batch_data in tqdm(data_loader, desc="evaluate"):
+        for batch_data in corpus.__iter__(desc="eval"):
             batch_data = [bd.to(self.device) for bd in batch_data]  # device
             labels = batch_data[3]
             with torch.no_grad():
-                inputs = {"attention_mask": batch_data[1],
-                          "token_type_ids": batch_data[2],
-                          "input_ids": batch_data[0],
-                          "labels": labels,
+                inputs = {"attention_mask": batch_data[0],
+                          "token_type_ids": batch_data[1],
+                          "input_ids": batch_data[2],
+                          "mask_cls": batch_data[5],
+                          "cls_ids": batch_data[4],
+                          "labels": labels
                           }
                 logits = self.model(**inputs)
                 loss = self.calculate_loss(logits, labels)
                 eval_loss += loss.mean().item()
                 eval_steps += 1
-
-            inputs_numpy = inputs.get("labels").detach().cpu().numpy()
+            mask_cls_numpy = inputs.get("mask_cls", []).detach().cpu().numpy()
+            mask_cls_count_numpy = np.sum(mask_cls_numpy==True, axis=-1)
+            inputs_numpy = labels.detach().cpu().numpy()
             logits_numpy = logits.detach().cpu().numpy()
-            if ys_pred_id is not None:
-                ys_pred_id = np.append(ys_pred_id, logits_numpy, axis=0)
-                ys_true_id = np.append(ys_true_id, inputs_numpy, axis=0)
-            else:
-                ys_pred_id = logits_numpy
-                ys_true_id = inputs_numpy
-        eval_loss = eval_loss / eval_steps
-        # 最后输出, top-1
-        ys_true_str, ys_pred_str = [], []
-        for i in range(ys_pred_id.shape[0]):
-            yti = ys_true_id[i]
-            ypi = ys_pred_id[i]
-            if _TC_MULTI_LABEL == self.config.task_type.upper():  # 多标签分类, 大于阈值该类别职位1, 否则为0
+
+            # 最后输出, top-1
+            for i in range(logits_numpy.shape[0]):
+                mcc = mask_cls_count_numpy[i]
+                yti = inputs_numpy[i][:mcc]
+                ypi = logits_numpy[i][:mcc]
                 ypi[ypi >= self.config.multi_label_threshold] = 1
                 ypi[ypi < self.config.multi_label_threshold] = 0
-            else:  # 多类分类, 最大得分置为1, 非最大得分全部置为0
-                index = ypi.argmax()
-                ypi[:] = 0
-                ypi[index] = 1
-            ys_true_str.append(yti)
-            ys_pred_str.append(ypi)
+                if ypi.tolist() == yti.tolist():
+                    eval_true += 1
+                eval_total += 1
+                ys_true_id.extend(yti.tolist())
+                ys_pred_id.extend(ypi.tolist())
+        logger.info("eval_true: {}; eval_total: {}; acc: {}".format(eval_true, eval_total, eval_true/eval_total))
+        # 每一个label
+        # ys_pred_id = np.array(ys_pred_id)
+        # ys_true_id = np.array(ys_true_id)
+        # ys_pred_id[ys_pred_id >= self.config.multi_label_threshold] = 1
+        # ys_pred_id[ys_pred_id < self.config.multi_label_threshold] = 0
         # 评估
-        target_names = [self.config.i2l[str(i)] for i in range(len(self.config.i2l))]
-        mertics, report = mertics_report(ys_true_str, ys_pred_str, target_names=target_names)
-        self.logger.info(report)
+        mertics, report = mertics_report(ys_true_id, ys_pred_id)
+        # mertics = classification_report(ys_true_id, ys_pred_id, output_dict=True, digits=5)
+        # report = classification_report(ys_true_id, ys_pred_id, digits=5)
+        logger.info(report)
+        eval_loss = eval_loss / eval_steps
         result = {"loss": eval_loss}
         result.update(mertics)
         return result, report
 
-    def predict(self, corpus, rounded=4, logits_type="logits", use_logits=False):
+    def predict(self, corpus, rounded=4, logits_type="logits"):
         """
         预测, pred
         config:
@@ -143,42 +145,40 @@ class Office:
         Returns:
             ys_prob: list<json>
         """
-        # pin_memory预先加载到cuda-gpu
-        data_loader = DataLoader(corpus, batch_size=self.config.batch_size, pin_memory=True)
-        ys_pred_id = None
+        ys_pred_prob = []
+        ys_pred_id = []
         # 预测 batch-size
         self.model.eval()
-        for batch_data in data_loader:
-            batch_data = [bd.to(self.device) for bd in batch_data]  # device
+        for batch_data in corpus.__pred__(desc="predict"):
+            batch_text = batch_data[-1]
+            batch_data = [bd.to(self.device) for bd in batch_data[:-1]]  # device
             with torch.no_grad():
-                inputs = {"attention_mask": batch_data[1],
-                          "token_type_ids": batch_data[2],
-                          "input_ids": batch_data[0],
-                          "labels": batch_data[3],
+                inputs = {"attention_mask": batch_data[0],
+                          "token_type_ids": batch_data[1],
+                          "input_ids": batch_data[2],
+                          "mask_cls": batch_data[4],
+                          "cls_ids": batch_data[3],
+                          # "labels": batch_data[3],
                           }
                 logits = self.model(**inputs)
+            mask_cls_numpy = inputs.get("mask_cls", []).detach().cpu().numpy()
+            mask_cls_count_numpy = np.sum(mask_cls_numpy == True, axis=-1)
             logits_numpy = logits.detach().cpu().numpy()
-            if logits_type.upper() == "SIGMOID":
-                logits_numpy = sigmoid(logits_numpy)
-            elif logits_type.upper() == "SOFTMAX":
-                logits_numpy = softmax(logits_numpy)
-            if ys_pred_id is not None:
-                ys_pred_id = np.append(ys_pred_id, logits_numpy, axis=0)
-            else:
-                ys_pred_id = logits_numpy
-        # 只返回onehot形式
-        if use_logits:
-            return ys_pred_id
-        # 最大概率, 最大概率的类别, 类别-概率, like [{"label_1":0.8, "label_2":0.2}]
-        ys_prob = []
-        for i in range(ys_pred_id.shape[0]):
-            ypi = ys_pred_id[i].tolist()
-            line = {}
-            for idx, prob in enumerate(ypi):
-                line[self.config.i2l[str(idx)]] = round(prob, rounded)
-            ys_prob.append(line)
-        return ys_prob
-
+            # 最后输出, top-1
+            for i in range(logits_numpy.shape[0]):
+                mcc = mask_cls_count_numpy[i]
+                ypi = copy.deepcopy(logits_numpy[i][:mcc])
+                ypi[ypi >= self.config.multi_label_threshold] = 1
+                ypi[ypi < self.config.multi_label_threshold] = 0
+                ys_pred_id.append([int(i) for i in ypi.tolist()])
+                ys_pred_prob_line = []
+                for j in range(len(ypi)):
+                    k = str(int(ypi[j]))
+                    v = round(logits_numpy[i][j], rounded)
+                    ys_pred_prob_line.append({"label": k, "score": v if k=="1" else round(1-v, rounded), "text": batch_text[i][j]})
+                ys_pred_prob.append(ys_pred_prob_line)
+        return ys_pred_id, ys_pred_prob
+    
     def calculate_loss(self, logits, labels):
         """ 计算损失函数 """
         if self.loss_type.upper() ==   "DB_LOSS":
@@ -263,12 +263,9 @@ class Office:
         self.sigmoid = torch.nn.Sigmoid()
 
     def train_model(self):
-        """  训练迭代epoch
+        """  训练迭代epoch  
         return global_steps, best_mertics
         """
-        #  数据转为迭代器iter的形式    #  weight_decay_rate=0.01, grad_accum_steps
-        data_loader = DataLoader(self.train_corpus, sampler=RandomSampler(self.train_corpus), batch_size=self.config.batch_size, pin_memory=True)
-
         #  配置好优化器与训练工作计划(主要是学习率预热warm-up与衰减weight-decay, 以及不作用的层超参)
         params_no_decay = ["LayerNorm.weight", "bias"]
         parameters_no_decay = [
@@ -276,39 +273,44 @@ class Office:
              "weight_decay": self.config.weight_decay},
             {"params": [p for n, p in self.model.named_parameters() if any(pnd in n for pnd in params_no_decay)],
              "weight_decay": 0.0}
-            ]
+        ]
         optimizer = AdamW(parameters_no_decay, lr=self.config.lr, eps=self.config.adam_eps)
-        # 训练轮次
-        times_batch_size = len(data_loader) // self.config.grad_accum_steps
+        ## 训练轮次
+        times_batch_size = self.train_corpus.len_corpus // self.config.grad_accum_steps
         num_training_steps = int(times_batch_size * self.config.epochs)
-        # 如果选择-1不设置则为 半个epoch
-        num_warmup_steps = int((len(data_loader) // self.config.grad_accum_steps // 2)) if self.config.warmup_steps == -1 else self.config.warmup_steps
-        scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=num_warmup_steps, num_training_steps=num_training_steps)
+        # # 如果选择-1不设置则为 1/10个epoch(最多1k)
+        num_warmup_steps = min(
+            int((self.train_corpus.len_corpus // self.config.grad_accum_steps // self.config.batch_size // 10)),
+            1000) if self.config.warmup_steps == -1 else self.config.grad_accum_steps
+        scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=num_warmup_steps,
+                                                    num_training_steps=num_training_steps)
         tensorboardx_witer = SummaryWriter(logdir=self.config.model_save_path)
 
         # adv
         if self.config.is_adv:
             fgm = FGM(self.model, emb_name=self.config.adv_emb_name, epsilon=self.config.adv_eps)
         # 开始训练
-        self.model.graph_config.is_train = True
         epochs_store = []
         global_steps = 0
         best_mertics = {}
         best_report = ""
         for epochs_i in trange(self.config.epochs, desc="epoch"):  # epoch
             self.model.train()  # train-type
-            for idx, batch_data in enumerate(tqdm(data_loader, desc="epoch_{} step".format(epochs_i))):  # step
+            for idx, batch_data in enumerate(self.train_corpus.__iter__(desc="train")):  # step
                 # 数据与模型
                 batch_data = [bd.to(self.device) for bd in batch_data]  # device
                 labels = batch_data[3]
-                inputs = {"attention_mask": batch_data[1],
-                          "token_type_ids": batch_data[2],
-                          "input_ids": batch_data[0],
+                inputs = {"attention_mask": batch_data[0],
+                          "token_type_ids": batch_data[1],
+                          "input_ids": batch_data[2],
+                          "mask_cls": batch_data[5],
+                          "cls_ids": batch_data[4],
                           "labels": labels,
                           }
                 logits = self.model(**inputs)
                 loss = self.calculate_loss(logits, labels)
                 loss = loss / self.config.grad_accum_steps
+
                 loss.backward()
                 global_steps += 1
                 #  对抗训练
@@ -316,7 +318,7 @@ class Office:
                     fgm.attack()  # 在embedding上添加对抗扰动
                     logits = self.model(**inputs)
                     loss = self.calculate_loss(logits, labels)
-                    loss = loss / self.config.grad_accum_steps  # 梯度累计
+                    loss = loss / self.config.grad_accum_steps
                     loss.backward()  # 反向传播，并在正常的grad基础上，累加对抗训练的梯度
                     fgm.restore()  # 恢复embedding参数
                 #  梯度累计
@@ -326,14 +328,13 @@ class Office:
                     scheduler.step()
                     self.model.zero_grad()
                 # 评估算法/打印日志/存储模型, 1个epoch/到达保存的步数/或者是最后一轮最后一步
-                if (self.config.evaluate_steps > 0 and global_steps % self.config.evaluate_steps == 0) or (idx == times_batch_size-1) \
-                        or (epochs_i+1 == self.config.epochs and idx+1 == len(data_loader)):
+                if self.config.evaluate_steps > 0 and global_steps % self.config.evaluate_steps == 0:
                     res, report = self.evaluate("dev")
-                    self.logger.info("best_report\n" + best_report)
-                    self.logger.info("current_mertics: {}".format(res))
-                    self.logger.info("epoch_global: {}, step_global: {}, step: {}".format(epochs_i, global_steps, idx))
+                    logger.info("epoch_global: {}, step_global: {}, step: {}".format(epochs_i, global_steps, idx))
+                    logger.info("best_report\n" + best_report)
+                    logger.info("current_mertics: {}".format(res))
                     # idx_score = res.get("micro", {}).get("f1", 0)  # "macro", "micro", "weighted"
-                    for k,v in res.items():  # tensorboard日志, 其中抽取中文、数字和英文, 避免一些不支持的符号, 比如说 /\|等特殊字符
+                    for k, v in res.items():  # tensorboard日志, 其中抽取中文、数字和英文, 避免一些不支持的符号, 比如说 /\|等特殊字符
                         if type(v) == dict:  # 空格和一些特殊字符tensorboardx.add_scalar不支持
                             k = chinese_extract_extend(k)
                             k = k.replace(" ", "")
@@ -350,13 +351,41 @@ class Office:
                         epochs_store.append((epochs_i, idx))
                         res["total"] = {"epochs": epochs_i, "global_steps": global_steps, "step_current": idx}
                         best_mertics = res
-                        best_report = report
+                        best_report = str(report)
                         self.save_model_state()
-                    # 早停, 连续stop_epochs轮指标不增长则自动停止
+                        # self.save_model()
+                    # 早停, 连续stop_epochs指标不增长则自动停止
                     if epochs_store and epochs_i - epochs_store[-1][0] >= self.config.stop_epochs:
                         break
+            res, report = self.evaluate("dev")
+            logger.info("epoch_global: {}, step_global: {}, step: {}".format(epochs_i, global_steps, idx))
+            logger.info("best_report\n" + best_report)
+            logger.info("current_mertics: {}".format(res))
+            # idx_score = res.get("micro", {}).get("f1", 0)  # "macro", "micro", "weighted"
+            for k, v in res.items():  # tensorboard日志, 其中抽取中文、数字和英文, 避免一些不支持的符号, 比如说 /\|等特殊字符
+                if type(v) == dict:  # 空格和一些特殊字符tensorboardx.add_scalar不支持
+                    k = chinese_extract_extend(k)
+                    k = k.replace(" ", "")
+                    for k_2, v_2 in v.items():
+                        tensorboardx_witer.add_scalar(k + "/" + k_2, v_2, global_steps)
+                elif type(v) == float:
+                    tensorboardx_witer.add_scalar(k, v, global_steps)
+                    tensorboardx_witer.add_scalar("lr", scheduler.get_lr()[-1], global_steps)
+            self.model.train()  # 预测时候的, 回转回来
+            save_best_mertics_key = self.config.save_best_mertics_key  # 模型存储的判别指标
+            abmk_1 = save_best_mertics_key[0]  # like "micro_avg"
+            abmk_2 = save_best_mertics_key[1]  # like "f1-score"
+            if res.get(abmk_1, {}).get(abmk_2, 0) > best_mertics.get(abmk_1, {}).get(abmk_2, 0):  # 只保留最优的指标
+                epochs_store.append((epochs_i, idx))
+                res["total"] = {"epochs": epochs_i, "global_steps": global_steps, "step_current": idx}
+                best_mertics = res
+                best_report = str(report)
+                self.save_model_state()
+            # 早停, 连续stop_epochs指标不增长则自动停止
+            if epochs_store and epochs_i - epochs_store[-1][0] >= self.config.stop_epochs:
+                break
         return global_steps, best_mertics, best_report
-
+    
     def load_model_state(self, path_dir=""):
         """  仅加载模型参数(推荐使用)  """
         try:
@@ -369,7 +398,7 @@ class Office:
             self.logger.info("******model loaded success******")
             self.logger.info("self.device: {}".format(self.device))
         except Exception as e:
-            self.logger.info(str(traceback.print_exc()))
+            self.logger.info(str(traceback.self.logger.info_exc()))
             raise Exception("******load model error******")
 
     def save_model_state(self):
@@ -397,7 +426,7 @@ class Office:
         batch_data = [[[1, 2, 3, 4]*32]*32, [[1, 0]*64]*32, [[0, 1]*64]*32]
         # for name, param in self.model.named_parameters():  # 查看可优化的参数有哪些
         #     # if param.requires_grad:
-        #         print(name)
+        #         self.logger.info(name)
         # batch_data = [bd.to(self.device) for bd in batch_data]  # device
         with torch.no_grad():
             inputs = {"attention_mask": torch.tensor(batch_data[1]).to(self.device),
@@ -432,7 +461,7 @@ class Office:
             self.model = torch.load(path_model, map_location=torch.device(self.device))
             self.logger.info("******model loaded success******")
         except Exception as e:
-            self.logger.info(str(traceback.print_exc()))
+            self.logger.info(str(traceback.self.logger.info_exc()))
             raise Exception("******load model error******")
 
     def save_model(self):
@@ -449,3 +478,6 @@ class Office:
         path_model = os.path.join(self.config.model_save_path, self.config.model_name)
         torch.save(self.model, path_model)
         self.logger.info("******model_save_path is {}******".format(path_model))
+
+
+
