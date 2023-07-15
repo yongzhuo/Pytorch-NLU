@@ -133,15 +133,15 @@ if __name__ == "__main__":
     # 预训练模型适配的class
     model_type = ["BERT", "ERNIE", "BERT_WWM", "ALBERT", "ROBERTA", "XLNET", "ELECTRA"]
     pretrained_model_name_or_path = {
-        "BERT_WWM": pretrained_model_dir + "/chinese_wwm_pytorch",
-        "ROBERTA": pretrained_model_dir + "/chinese_roberta_wwm_ext_pytorch",
-        "ALBERT": pretrained_model_dir + "/albert_base_v1",
-        "XLNET": pretrained_model_dir + "/chinese_xlnet_mid_pytorch",
-        # "ERNIE": pretrained_model_dir + "/ERNIE_stable-1.0.1-pytorch",
-        "ERNIE": pretrained_model_dir + "/ernie-tiny",
-        # 预训练模型地址, 本地win10默认只跑2步就评估保存模型
-        "BERT": pretrained_model_dir + "/bert-base-chinese",
-        # "BERT": pretrained_model_dir + "/mengzi-bert-base/",
+        "BERT_WWM": "hfl/chinese-bert-wwm-ext",
+        "ROBERTA": "hfl/chinese-roberta-wwm-ext",
+        "ALBERT": "uer/albert-base-chinese-cluecorpussmall",
+        "XLNET": "hfl/chinese-xlnet-mid",
+        "ERNIE": "nghuyong/ernie-1.0-base-zh",
+        # "ERNIE": "nghuyong/ernie-3.0-base-zh",
+        "BERT": "bert-base-chinese",
+        # "BERT": "hfl/chinese-macbert-base",
+
     }
     idx = 1  # 选择的预训练模型类型---model_type
     model_config["pretrained_model_name_or_path"] = pretrained_model_name_or_path[model_type[idx]]

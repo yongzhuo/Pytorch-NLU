@@ -97,10 +97,10 @@ CONLL格式如下:
 
 # 使用方式
   更多样例sample详情见/test目录
-  - 1. 需要配置好预训练模型目录, 即变量 pretrained_model_dir、pretrained_model_name_or_path、idx等;
-  - 2. 需要配置好自己的语料地址, 即字典 model_config["path_train"]、model_config["path_dev"]
-  - 3. cd到该脚本目录下运行普通的命令行即可, 例如: python3 slRun.py , python3 tcRun.py , python3 tet_tc_base_multi_label.py, python3 tet_sl_base_crf.py
-  - 4. 如果训练时候出现指标为零或者很低的情况, 大概率是学习率、损失函数配错了
+  - 1. (已默认/可配置)需要配置好预训练模型目录, 即变量 pretrained_model_dir、pretrained_model_name_or_path、idx等;
+  - 2. (已默认/可配置, 即训练, 验证集<非必要>)需要配置好自己的语料地址, 即字典 model_config["path_train"]、model_config["path_dev"]
+  - 3. (命令行/编辑工具直接run)cd到该脚本目录下运行普通的命令行即可, 例如: python3 slRun.py , python3 tcRun.py , python3 tet_tc_base_multi_label.py, python3 tet_sl_base_crf.py
+  - 4. (注意)如果训练时候出现指标为零或者很低的情况, 大概率是学习率、损失函数配错了
 ## 文本分类(TC), text-classification
 ```bash
 # !/usr/bin/python
@@ -157,14 +157,16 @@ if __name__ == "__main__":
 
     # 预训练模型适配的class
     model_type = ["BERT", "ERNIE", "BERT_WWM", "ALBERT", "ROBERTA", "XLNET", "ELECTRA"]
-    pretrained_model_name_or_path = {
-        "BERT_WWM": pretrained_model_dir + "/chinese_wwm_pytorch",
-        "ROBERTA": pretrained_model_dir + "/chinese_roberta_wwm_ext_pytorch",
-        "ALBERT": pretrained_model_dir + "/albert_base_v1",
-        "XLNET": pretrained_model_dir + "/chinese_xlnet_mid_pytorch",
-        "ERNIE": pretrained_model_dir + "/ERNIE_stable-1.0.1-pytorch",
-        # "ERNIE": pretrained_model_dir + "/ernie-tiny",  # 小模型
-        "BERT": pretrained_model_dir + "/bert-base-chinese",
+        pretrained_model_name_or_path = {
+        "BERT_WWM":  "hfl/chinese-bert-wwm-ext",
+        "ROBERTA":  "hfl/chinese-roberta-wwm-ext",
+        "ALBERT":  "uer/albert-base-chinese-cluecorpussmall",
+        "XLNET":  "hfl/chinese-xlnet-mid",
+        "ERNIE":  "nghuyong/ernie-1.0-base-zh",
+        # "ERNIE": "nghuyong/ernie-3.0-base-zh",
+        "BERT":  "bert-base-chinese",
+        # "BERT": "hfl/chinese-macbert-base",
+
     }
     idx = 0  # 选择的预训练模型类型---model_type, 0为BERT,
     model_config["pretrained_model_name_or_path"] = pretrained_model_name_or_path[model_type[idx]]
@@ -221,13 +223,15 @@ else:
 # 预训练模型适配的class
 model_type = ["BERT", "ERNIE", "BERT_WWM", "ALBERT", "ROBERTA", "XLNET", "ELECTRA"]
 pretrained_model_name_or_path = {
-    "BERT_WWM": pretrained_model_dir + "/chinese_wwm_pytorch",
-    "ROBERTA": pretrained_model_dir + "/chinese_roberta_wwm_ext_pytorch",
-    "ALBERT": pretrained_model_dir + "/albert_base_v1",
-    "XLNET": pretrained_model_dir + "/chinese_xlnet_mid_pytorch",
-    "ERNIE": pretrained_model_dir + "/ERNIE_stable-1.0.1-pytorch",
-    # "ERNIE": pretrained_model_dir + "/ernie-tiny",  # 小模型
-    "BERT": pretrained_model_dir + "/bert-base-chinese",
+    "BERT_WWM":  "hfl/chinese-bert-wwm-ext",
+    "ROBERTA":  "hfl/chinese-roberta-wwm-ext",
+    "ALBERT":  "uer/albert-base-chinese-cluecorpussmall",
+    "XLNET":  "hfl/chinese-xlnet-mid",
+    "ERNIE":  "nghuyong/ernie-1.0-base-zh",
+    # "ERNIE": "nghuyong/ernie-3.0-base-zh",
+    "BERT":  "bert-base-chinese",
+    # "BERT": "hfl/chinese-macbert-base",
+
 }
 
 
@@ -327,14 +331,15 @@ if __name__ == "__main__":
     # 预训练模型适配的class
     model_type = ["BERT", "ERNIE", "BERT_WWM", "ALBERT", "ROBERTA", "XLNET", "ELECTRA"]
     pretrained_model_name_or_path = {
-        "BERT_WWM": pretrained_model_dir + "/chinese_wwm_pytorch",
-        "ROBERTA": pretrained_model_dir + "/chinese_roberta_wwm_ext_pytorch",
-        "ALBERT": pretrained_model_dir + "/albert_base_v1",
-        "XLNET": pretrained_model_dir + "/chinese_xlnet_mid_pytorch",
-        # "ERNIE": pretrained_model_dir + "/ERNIE_stable-1.0.1-pytorch",
-        "ERNIE": pretrained_model_dir + "/ernie-tiny",
-        "BERT": pretrained_model_dir + "/bert-base-chinese",
-        # "BERT": pretrained_model_dir + "/mengzi-bert-base/",
+        "BERT_WWM":  "hfl/chinese-bert-wwm-ext",
+        "ROBERTA":  "hfl/chinese-roberta-wwm-ext",
+        "ALBERT":  "uer/albert-base-chinese-cluecorpussmall",
+        "XLNET":  "hfl/chinese-xlnet-mid",
+        "ERNIE":  "nghuyong/ernie-1.0-base-zh",
+        # "ERNIE": "nghuyong/ernie-3.0-base-zh",
+        "BERT":  "bert-base-chinese",
+        # "BERT": "hfl/chinese-macbert-base",
+
     }
     idx = 0  # 选择的预训练模型类型---model_type
     model_config["pretrained_model_name_or_path"] = pretrained_model_name_or_path[model_type[idx]]
