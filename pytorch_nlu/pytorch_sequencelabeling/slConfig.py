@@ -63,7 +63,7 @@ model_config = {
     "num_labels": 0,   # 类别数, 自动更新
     "max_len": 128,    # 最大文本长度, None和-1则为自动获取覆盖0.95数据的文本长度, 0则取训练语料的最大长度, 具体的数值就是强制padding到max_len
     "epochs": 16,      # 训练轮次
-    "dense_lr": 1e-5,  # CRF层学习率/全连接层学习率, CRF时候与lr保持100-1000倍的大小差距
+    "dense_lr": 1e-3,  # CRF层学习率/全连接层学习率, CRF时候与lr保持100-1000倍的大小差距
     "lr": 1e-5,        # 学习率
 
     "grad_accum_steps": 1,  # 梯度积累多少步
