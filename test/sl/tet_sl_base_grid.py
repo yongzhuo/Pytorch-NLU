@@ -63,7 +63,9 @@ if __name__ == "__main__":
     # 另一种格式 文件以.span结尾, 或者corpus_type=="DATA-SPAN"
     model_config["corpus_type"] = "DATA-CONLL"# 语料数据格式, "DATA-CONLL", "DATA-SPAN"
     model_config["task_type"] = "SL-GRID"  # 任务类型, "SL-SOFTMAX", "SL-CRF", "SL-SPAN"
-
+    model_config["task_type"] = "SL-GRID"  # 任务类型, "SL-SOFTMAX", "SL-CRF", "SL-SPAN"
+    model_config["loss_type"] = "CIRCLE_LOSS"  # 因为0比较多所以必须使用circle_loss, 否则不收敛
+    
     model_config["lr"] = 1e-5  # 学习率, 依据选择的预训练模型自己选择, 1e-5, 2e-5, 5e-5, 8e-5, 1e-4, 4e-4
     model_config["dense_lr"] = 1e-5  # CRF层学习率/全连接层学习率, 1e-5, 1e-4, 1e-3
     model_config["max_len"] = 156    # 最大文本长度, None和-1则为自动获取覆盖0.95数据的文本长度, 0则取训练语料的最大长度, 具体的数值就是强制padding到max_len
